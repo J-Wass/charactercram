@@ -31,7 +31,7 @@ body {
     justify-content: center;
     align-items: center;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
 }
 
 .level-selector label {
@@ -220,7 +220,7 @@ body.level-master {
 .game-area {
     display: flex;
     flex-direction: column;
-    gap: 30px;
+    gap: 20px;
 }
 
 .prompt-section {
@@ -479,7 +479,7 @@ body.level-master {
 /* Toast notification */
 .toast {
     position: fixed;
-    bottom: 30px;
+    top: 30px;
     right: 30px;
     color: white;
     padding: 15px 25px;
@@ -490,7 +490,7 @@ body.level-master {
     opacity: 0;
     pointer-events: none;
     transition: all 0.3s ease;
-    transform: translateY(20px);
+    transform: translateY(-20px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -612,8 +612,15 @@ body.level-master {
 }
 
 @media (max-width: 600px) {
+    body {
+        align-items: flex-start;
+        padding: 10px;
+        min-height: 100vh;
+    }
+    
     .container {
         padding: 15px;
+        margin-top: 0;
     }
     
     .pinyin {

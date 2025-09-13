@@ -85,27 +85,45 @@ class ChineseCharacterApp {
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousedown', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            this.canvas.dispatchEvent(mouseEvent);
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            
+            this.isDrawing = true;
+            this.lastX = x;
+            this.lastY = y;
+            
+            this.ctx.beginPath();
+            this.ctx.moveTo(x, y);
         });
         
         this.canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
+            if (!this.isDrawing) return;
+            
             const touch = e.touches[0];
-            const mouseEvent = new MouseEvent('mousemove', {
-                clientX: touch.clientX,
-                clientY: touch.clientY
-            });
-            this.canvas.dispatchEvent(mouseEvent);
+            const rect = this.canvas.getBoundingClientRect();
+            const scaleX = this.canvas.width / rect.width;
+            const scaleY = this.canvas.height / rect.height;
+            const x = (touch.clientX - rect.left) * scaleX;
+            const y = (touch.clientY - rect.top) * scaleY;
+            
+            // Use quadratic curves for smoother lines
+            const midX = (this.lastX + x) / 2;
+            const midY = (this.lastY + y) / 2;
+            
+            this.ctx.quadraticCurveTo(this.lastX, this.lastY, midX, midY);
+            this.ctx.stroke();
+            
+            this.lastX = x;
+            this.lastY = y;
         });
         
         this.canvas.addEventListener('touchend', (e) => {
             e.preventDefault();
-            const mouseEvent = new MouseEvent('mouseup', {});
-            this.canvas.dispatchEvent(mouseEvent);
+            this.stopDrawing();
         });
     }
     
@@ -145,8 +163,10 @@ class ChineseCharacterApp {
     startDrawing(e) {
         this.isDrawing = true;
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
         
         this.lastX = x;
         this.lastY = y;
@@ -159,8 +179,10 @@ class ChineseCharacterApp {
         if (!this.isDrawing) return;
         
         const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const scaleX = this.canvas.width / rect.width;
+        const scaleY = this.canvas.height / rect.height;
+        const x = (e.clientX - rect.left) * scaleX;
+        const y = (e.clientY - rect.top) * scaleY;
         
         // Use quadratic curves for smoother lines
         const midX = (this.lastX + x) / 2;
