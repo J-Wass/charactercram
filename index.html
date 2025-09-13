@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chinese Character Writing Practice</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="level-selector">
+            <label>Level: </label>
+            <select id="levelSelect">
+                <option value="novice">Novice (10 chars)</option>
+                <option value="beginner">Beginner (25 chars)</option>
+                <option value="intermediate">Intermediate (100 chars)</option>
+                <option value="advanced">Advanced (1000 chars)</option>
+                <option value="master">Master (All chars)</option>
+            </select>
+        </div>
+
+        <div class="game-area">
+            <div class="prompt-section">
+                <div class="prompt-info">
+                    <h2 id="pinyin" class="pinyin">Loading...</h2>
+                    <p id="english" class="english">Please wait...</p>
+                </div>
+                <div class="progress-info">
+                    <span id="avgScore">Avg Score: -</span>
+                    <span id="masteryLevel">0% mastered</span>
+                </div>
+            </div>
+
+            <div class="practice-area">
+                <div class="canvas-wrapper">
+                    <div class="canvas-container">
+                        <h3>Your Attempt</h3>
+                        <canvas id="drawingCanvas" width="300" height="300"></canvas>
+                    </div>
+                    <div id="answerContainer" class="canvas-container hidden">
+                        <h3>Correct Stroke Order</h3>
+                        <img id="strokeGif" src="" alt="Stroke order animation">
+                    </div>
+                </div>
+                
+                <div class="controls-section">
+                    <div class="canvas-controls">
+                        <button id="clearBtn" class="btn btn-secondary">Clear</button>
+                        <button id="showAnswerBtn" class="btn btn-primary" title="Press SPACE to show answer">
+                            Show Answer <span class="hotkey-hint">SPACE</span>
+                        </button>
+                    </div>
+                    
+                    <div id="difficultySection" class="difficulty-buttons hidden">
+                        <p>How difficult was this character?</p>
+                        <div class="difficulty-row">
+                            <button class="difficulty-btn" data-difficulty="1" title="Press 1 for Very Hard">
+                                <span class="hotkey-number">1</span>Very Hard
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="2" title="Press 2 for Hard">
+                                <span class="hotkey-number">2</span>Hard
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="3" title="Press 3 for Almost">
+                                <span class="hotkey-number">3</span>Almost
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="4" title="Press 4 for Easy">
+                                <span class="hotkey-number">4</span>Easy
+                            </button>
+                            <button class="difficulty-btn" data-difficulty="5" title="Press 5 for Very Easy">
+                                <span class="hotkey-number">5</span>Very Easy
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast notification -->
+    <div id="toast" class="toast"></div>
+
+    <script src="chars_data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

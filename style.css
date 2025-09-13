@@ -1,0 +1,643 @@
+/* Chinese Character Practice App Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    transition: background 0.5s ease;
+}
+
+.container {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 800px;
+    width: 100%;
+    padding: 30px;
+}
+
+.level-selector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.level-selector label {
+    font-weight: 600;
+    color: #666;
+}
+
+.level-selector select {
+    padding: 8px 15px;
+    border: 2px solid #ddd;
+    border-radius: 8px;
+    font-size: 16px;
+    background: white;
+    cursor: pointer;
+    transition: border-color 0.3s;
+}
+
+.level-selector select:hover {
+    border-color: #667eea;
+}
+
+.level-selector select option {
+    padding: 8px 12px;
+    color: #333;
+    font-weight: 500;
+}
+
+/* Level-specific option colors */
+.level-selector select option.level-novice {
+    background: linear-gradient(to right, #667eea var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
+}
+
+.level-selector select option.level-beginner {
+    background: linear-gradient(to right, #10b981 var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
+}
+
+.level-selector select option.level-intermediate {
+    background: linear-gradient(to right, #0891b2 var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
+}
+
+.level-selector select option.level-advanced {
+    background: linear-gradient(to right, #f59e0b var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
+}
+
+.level-selector select option.level-master {
+    background: linear-gradient(to right, #ef4444 var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
+}
+
+.level-selector select option.no-score {
+    background: #f3f4f6 !important;
+}
+
+/* Style the select itself based on current selection */
+.level-selector select.level-novice {
+    border-color: #8b9dc3;
+    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
+    color: white;
+}
+
+.level-selector select.level-beginner {
+    border-color: #52a085;
+    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
+    color: white;
+}
+
+.level-selector select.level-intermediate {
+    border-color: #5a9bb8;
+    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
+    color: white;
+}
+
+.level-selector select.level-advanced {
+    border-color: #c08552;
+    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
+    color: white;
+}
+
+.level-selector select.level-master {
+    border-color: #c36e6e;
+    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
+    color: white;
+}
+
+/* Level-specific site theming */
+.container.level-novice .prompt-info {
+    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
+}
+
+.container.level-beginner .prompt-info {
+    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
+}
+
+.container.level-intermediate .prompt-info {
+    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
+}
+
+.container.level-advanced .prompt-info {
+    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
+}
+
+.container.level-master .prompt-info {
+    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
+}
+
+.container.level-novice .btn-primary {
+    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
+}
+
+.container.level-beginner .btn-primary {
+    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
+}
+
+.container.level-intermediate .btn-primary {
+    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
+}
+
+.container.level-advanced .btn-primary {
+    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
+}
+
+.container.level-master .btn-primary {
+    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
+}
+
+.container.level-novice .btn-primary:hover {
+    box-shadow: 0 5px 15px rgba(139, 157, 195, 0.3);
+}
+
+.container.level-beginner .btn-primary:hover {
+    box-shadow: 0 5px 15px rgba(82, 160, 133, 0.3);
+}
+
+.container.level-intermediate .btn-primary:hover {
+    box-shadow: 0 5px 15px rgba(90, 155, 184, 0.3);
+}
+
+.container.level-advanced .btn-primary:hover {
+    box-shadow: 0 5px 15px rgba(192, 133, 82, 0.3);
+}
+
+.container.level-master .btn-primary:hover {
+    box-shadow: 0 5px 15px rgba(195, 110, 110, 0.3);
+}
+
+.container.level-novice .progress-fill {
+    background: linear-gradient(90deg, #8b9dc3 0%, #9fa8da 100%);
+}
+
+.container.level-beginner .progress-fill {
+    background: linear-gradient(90deg, #52a085 0%, #7cb387 100%);
+}
+
+.container.level-intermediate .progress-fill {
+    background: linear-gradient(90deg, #5a9bb8 0%, #52a085 100%);
+}
+
+.container.level-advanced .progress-fill {
+    background: linear-gradient(90deg, #c08552 0%, #d49a6a 100%);
+}
+
+.container.level-master .progress-fill {
+    background: linear-gradient(90deg, #c36e6e 0%, #b76565 100%);
+}
+
+/* Level-specific body backgrounds */
+body.level-novice {
+    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
+}
+
+body.level-beginner {
+    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
+}
+
+body.level-intermediate {
+    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
+}
+
+body.level-advanced {
+    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
+}
+
+body.level-master {
+    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
+}
+
+.game-area {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.prompt-section {
+    text-align: center;
+}
+
+.prompt-info {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 15px;
+    transition: background 0.3s ease;
+}
+
+.pinyin {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+    font-weight: 300;
+}
+
+.english {
+    font-size: 1.2em;
+    opacity: 0.95;
+}
+
+.progress-info {
+    display: flex;
+    justify-content: space-between;
+    color: #666;
+    font-size: 14px;
+}
+
+.practice-area {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.canvas-wrapper {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    align-items: flex-start;
+}
+
+.canvas-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.canvas-container h3 {
+    color: #666;
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.canvas-container.hidden {
+    display: none;
+}
+
+#drawingCanvas {
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    cursor: crosshair;
+    touch-action: none;
+    background: white;
+}
+
+#strokeGif {
+    width: 300px;
+    height: 300px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    background: white;
+}
+
+.controls-section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.canvas-controls {
+    display: flex;
+    gap: 15px;
+}
+
+.btn {
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.btn-secondary {
+    background: #f3f4f6;
+    color: #333;
+}
+
+.btn-secondary:hover {
+    background: #e5e7eb;
+}
+
+.difficulty-buttons {
+    text-align: center;
+    width: 100%;
+    max-width: 600px;
+}
+
+.difficulty-buttons.hidden {
+    display: none;
+}
+
+.difficulty-buttons p {
+    margin-bottom: 15px;
+    color: #666;
+    font-weight: 600;
+}
+
+.difficulty-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: nowrap;
+}
+
+.difficulty-btn {
+    padding: 10px 12px;
+    border: 2px solid #ddd;
+    background: white;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-size: 13px;
+    font-weight: 600;
+    flex: 1;
+    min-width: 0;
+    white-space: normal;
+    word-wrap: break-word;
+    line-height: 1.2;
+}
+
+.difficulty-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.difficulty-btn[data-difficulty="1"] {
+    border-color: #ef4444;
+    color: #ef4444;
+}
+
+.difficulty-btn[data-difficulty="1"]:hover {
+    background: #ef4444;
+    color: white;
+}
+
+.difficulty-btn[data-difficulty="2"] {
+    border-color: #f97316;
+    color: #f97316;
+}
+
+.difficulty-btn[data-difficulty="2"]:hover {
+    background: #f97316;
+    color: white;
+}
+
+.difficulty-btn[data-difficulty="3"] {
+    border-color: #f59e0b;
+    color: #f59e0b;
+}
+
+.difficulty-btn[data-difficulty="3"]:hover {
+    background: #f59e0b;
+    color: white;
+}
+
+.difficulty-btn[data-difficulty="4"] {
+    border-color: #84cc16;
+    color: #84cc16;
+}
+
+.difficulty-btn[data-difficulty="4"]:hover {
+    background: #84cc16;
+    color: white;
+}
+
+.difficulty-btn[data-difficulty="5"] {
+    border-color: #10b981;
+    color: #10b981;
+}
+
+.difficulty-btn[data-difficulty="5"]:hover {
+    background: #10b981;
+    color: white;
+}
+
+/* Hotkey hints */
+.hotkey-hint {
+    display: inline-block;
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    padding: 2px 6px;
+    font-size: 11px;
+    margin-left: 8px;
+    font-weight: normal;
+}
+
+.hotkey-number {
+    display: inline-block;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+    width: 16px;
+    height: 16px;
+    font-size: 10px;
+    line-height: 16px;
+    text-align: center;
+    font-weight: bold;
+    opacity: 0.6;
+}
+
+.difficulty-btn {
+    position: relative;
+}
+
+/* Hide hotkey hints on mobile */
+@media (max-width: 768px) {
+    .hotkey-hint,
+    .hotkey-number {
+        display: none;
+    }
+}
+
+/* Toast notification */
+.toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 12px;
+    font-size: 18px;
+    font-weight: bold;
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.3s ease;
+    transform: translateY(20px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.stats-section {
+    margin-top: 30px;
+    text-align: center;
+}
+
+.stats-panel {
+    margin-top: 20px;
+    padding: 20px;
+    background: #f9fafb;
+    border-radius: 15px;
+}
+
+.stats-panel.hidden {
+    display: none;
+}
+
+.stats-panel h3 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.stats-panel h4 {
+    color: #666;
+    margin: 20px 0 10px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 30px;
+    background: #e5e7eb;
+    border-radius: 15px;
+    overflow: hidden;
+    margin-bottom: 10px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #10b981 0%, #84cc16 100%);
+    transition: width 0.5s ease;
+}
+
+.problematic-list {
+    list-style: none;
+    padding: 0;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.problematic-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    background: white;
+    margin-bottom: 5px;
+    border-radius: 8px;
+    border: 1px solid #e5e7eb;
+}
+
+.char-display {
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+}
+
+.char-pinyin {
+    color: #666;
+}
+
+.char-difficulty {
+    color: #999;
+    font-size: 12px;
+}
+
+.level-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    background: white;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+}
+
+.stat-item span:first-child {
+    color: #999;
+    font-size: 12px;
+    margin-bottom: 5px;
+}
+
+.stat-item span:last-child {
+    color: #333;
+    font-size: 20px;
+    font-weight: bold;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .canvas-wrapper {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+@media (max-width: 600px) {
+    .container {
+        padding: 15px;
+    }
+    
+    .pinyin {
+        font-size: 2em;
+    }
+    
+    .english {
+        font-size: 1em;
+    }
+    
+    #drawingCanvas,
+    #strokeGif {
+        width: 250px;
+        height: 250px;
+    }
+    
+    .difficulty-btn {
+        padding: 10px 4px;
+        font-size: 11px;
+        min-height: 44px;
+        text-align: center;
+    }
+    
+    .level-stats {
+        grid-template-columns: 1fr 1fr;
+    }
+}

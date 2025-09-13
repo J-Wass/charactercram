@@ -1,0 +1,20 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/jonah/Downloads/**)",
+      "Bash(pip install:*)",
+      "Bash(python:*)",
+      "Bash(dir:*)",
+      "Bash(start stroke_gifs人.gif)",
+      "Bash(start index.html)",
+      "Bash(ipconfig)",
+      "Bash(findstr:*)",
+      "Bash(netsh:*)",
+      "Bash(git init:*)",
+      "Bash(git remote add:*)",
+      "Bash(git add:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
