@@ -376,39 +376,39 @@ body {
     transform: translateY(0);
 }
 
-/* Marathon Mode */
-.btn-marathon {
+/* Review Mode */
+.btn-review {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
     color: white;
     margin-left: 10px;
     position: relative;
     overflow: hidden;
-    animation: marathonShimmer 3s ease-in-out infinite;
+    animation: reviewShimmer 3s ease-in-out infinite;
     transition: all 0.3s ease;
 }
 
-.btn-marathon:hover {
+.btn-review:hover {
     background: linear-gradient(135deg, #f093fb 0%, #764ba2 50%, #667eea 100%);
     transform: translateY(-2px);
     box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
 }
 
-.btn-marathon.marathon-active {
+.btn-review.review-active {
     background: linear-gradient(135deg, #f093fb 0%, #764ba2 50%, #667eea 100%);
-    animation: marathonPulse 2s ease-in-out infinite;
+    animation: reviewPulse 2s ease-in-out infinite;
     box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
 }
 
-.btn-marathon.marathon-active:hover {
+.btn-review.review-active:hover {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
 }
 
-@keyframes marathonShimmer {
+@keyframes reviewShimmer {
     0%, 100% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
 }
 
-@keyframes marathonPulse {
+@keyframes reviewPulse {
     0%, 100% { box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4); }
     50% { box-shadow: 0 6px 25px rgba(240, 147, 251, 0.6); }
 }
@@ -466,6 +466,24 @@ body {
 
 .modal-buttons .btn {
     padding: 10px 20px;
+}
+
+.preset-btn {
+    padding: 8px 16px;
+    border: 2px solid #667eea;
+    background: white;
+    color: #667eea;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.preset-btn:hover {
+    background: #667eea;
+    color: white;
+    transform: translateY(-1px);
 }
 
 .stats-section {

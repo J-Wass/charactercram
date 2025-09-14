@@ -4,8 +4,8 @@ class ChineseCharacterApp {
     constructor() {
         this.characters = [];
         this.currentLevel = 'level-1';  // Default to first level
-        this.isMarathonMode = false;
-        this.marathonMax = 100;
+        this.isReviewMode = false;
+        this.reviewMax = 100;
         this.currentCharIndex = 0;
         this.currentChar = null;
         this.userProgress = this.loadProgress();
@@ -37,7 +37,7 @@ class ChineseCharacterApp {
         this.restoreUIFromSettings();
         this.setupCanvas();
         this.setupEventListeners();
-        this.setupMarathonModal();
+        this.setupReviewModal();
         this.updateSelectStyling();
         this.updateLevelDropdownMastery();
         this.startNewRound();
@@ -45,30 +45,28 @@ class ChineseCharacterApp {
     
     restoreUIFromSettings() {
         const levelSelect = document.getElementById('levelSelect');
-        const marathonBtn = document.getElementById('marathonBtn');
+        const reviewBtn = document.getElementById('reviewBtn');
         
-        if (this.isMarathonMode) {
-            // Hide level selector and show marathon info
+        if (this.isReviewMode) {
+            // Hide level selector and show review info
             levelSelect.style.display = 'none';
-            this.currentLevel = 'marathon';
-            marathonBtn.textContent = `Exit Marathon (${this.marathonMax} chars)`;
-            marathonBtn.classList.add('marathon-active');
+            this.currentLevel = 'review';
+            reviewBtn.textContent = `Exit Review (${this.reviewMax} chars)`;
+            reviewBtn.classList.add('review-active');
             
-            // Set marathon slider value
-            const marathonSlider = document.getElementById('marathonSlider');
-            const marathonValue = document.getElementById('marathonValue');
-            if (marathonSlider && marathonValue) {
-                marathonSlider.value = this.marathonMax;
-                marathonValue.textContent = this.marathonMax;
+            // Set review input value
+            const reviewInput = document.getElementById('reviewInput');
+            if (reviewInput) {
+                reviewInput.value = this.reviewMax;
             }
         } else {
-            // Show level selector and reset marathon button
+            // Show level selector and reset review button
             levelSelect.style.display = 'block';
             levelSelect.value = this.currentLevel;
             levelSelect.disabled = false;
             levelSelect.style.opacity = '1';
-            marathonBtn.textContent = 'Marathon Mode';
-            marathonBtn.classList.remove('marathon-active');
+            reviewBtn.textContent = 'Review Mode';
+            reviewBtn.classList.remove('review-active');
         }
     }
     
@@ -252,18 +250,17 @@ class ChineseCharacterApp {
         this.isDrawing = false;
     }
     
-    setupMarathonModal() {
-        const marathonBtn = document.getElementById('marathonBtn');
-        const marathonModal = document.getElementById('marathonModal');
-        const marathonSlider = document.getElementById('marathonSlider');
-        const marathonValue = document.getElementById('marathonValue');
-        const startMarathon = document.getElementById('startMarathon');
-        const cancelMarathon = document.getElementById('cancelMarathon');
-        
-        marathonBtn.addEventListener('click', () => {
-            if (this.isMarathonMode) {
-                // Exit marathon mode
-                this.isMarathonMode = false;
+    setupReviewModal() {
+        const reviewBtn = document.getElementById('reviewBtn');
+        const reviewModal = document.getElementById('reviewModal');
+        const reviewInput = document.getElementById('reviewInput');
+        const startReview = document.getElementById('startReview');
+        const cancelReview = document.getElementById('cancelReview');
+
+        reviewBtn.addEventListener('click', () => {
+            if (this.isReviewMode) {
+                // Exit review mode
+                this.isReviewMode = false;
                 this.currentLevel = 'level-1'; // Return to default level
                 this.saveSettings();
                 this.restoreUIFromSettings();
@@ -271,40 +268,69 @@ class ChineseCharacterApp {
                 this.updateLevelDropdownMastery();
                 this.startNewRound();
             } else {
-                // Enter marathon mode
-                marathonModal.classList.remove('hidden');
+                // Enter review mode
+                reviewModal.classList.remove('hidden');
+                // Focus the input field so user can type immediately
+                setTimeout(() => reviewInput.focus(), 100);
+            }
+        });
+
+        // Add event listeners for preset buttons
+        const presetButtons = reviewModal.querySelectorAll('.preset-btn');
+        presetButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const value = parseInt(e.target.dataset.value);
+                reviewInput.value = value;
+            });
+        });
+
+        // Validate input on blur (when user finishes typing)
+        reviewInput.addEventListener('blur', (e) => {
+            let value = parseInt(e.target.value);
+            if (isNaN(value) || value < 0) {
+                e.target.value = 10;
+            } else if (value > 5000) {
+                e.target.value = 5000;
+            }
+        });
+
+        // Allow Enter key to start review
+        reviewInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startReview.click();
             }
         });
         
-        marathonSlider.addEventListener('input', (e) => {
-            marathonValue.textContent = e.target.value;
-        });
-        
-        startMarathon.addEventListener('click', () => {
-            this.isMarathonMode = true;
-            this.marathonMax = parseInt(marathonSlider.value);
-            this.currentLevel = 'marathon';
-            marathonModal.classList.add('hidden');
+        startReview.addEventListener('click', () => {
+            const value = parseInt(reviewInput.value);
+            if (isNaN(value) || value < 0 || value > 5000) {
+                reviewInput.value = 100; // Reset to default if invalid
+                return;
+            }
+            this.isReviewMode = true;
+            this.reviewMax = value;
+            this.currentLevel = 'review';
+            reviewModal.classList.add('hidden');
+
+            // Clear review progress to restart fresh
+            this.clearReviewProgress();
             
-            // Clear marathon progress to restart fresh
-            this.clearMarathonProgress();
+            this.saveSettings(); // Save review mode settings
             
-            this.saveSettings(); // Save marathon mode settings
-            
-            // Update UI for marathon mode
+            // Update UI for review mode
             this.restoreUIFromSettings();
             this.updateSelectStyling();
             this.startNewRound();
         });
         
-        cancelMarathon.addEventListener('click', () => {
-            marathonModal.classList.add('hidden');
+        cancelReview.addEventListener('click', () => {
+            reviewModal.classList.add('hidden');
         });
         
         // Click outside modal to close
-        marathonModal.addEventListener('click', (e) => {
-            if (e.target === marathonModal) {
-                marathonModal.classList.add('hidden');
+        reviewModal.addEventListener('click', (e) => {
+            if (e.target === reviewModal) {
+                reviewModal.classList.add('hidden');
             }
         });
     }
@@ -312,7 +338,7 @@ class ChineseCharacterApp {
     setupEventListeners() {
         // Level selector
         document.getElementById('levelSelect').addEventListener('change', (e) => {
-            this.isMarathonMode = false;
+            this.isReviewMode = false;
             this.currentLevel = e.target.value;
             document.getElementById('levelSelect').disabled = false;
             document.getElementById('levelSelect').style.opacity = '1';
@@ -353,6 +379,11 @@ class ChineseCharacterApp {
         
         // Keyboard shortcuts for desktop
         document.addEventListener('keydown', (e) => {
+            // Don't intercept keyboard shortcuts if user is typing in an input field
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+                return;
+            }
+
             // Spacebar to show answer
             if (e.code === 'Space') {
                 e.preventDefault();
@@ -362,13 +393,13 @@ class ChineseCharacterApp {
                     this.showAnswer();
                 }
             }
-            
+
             // Number keys 1-5 for difficulty buttons
             if (e.code >= 'Digit1' && e.code <= 'Digit5') {
                 e.preventDefault();
                 const difficulty = parseInt(e.code.slice(-1));
                 const difficultySection = document.getElementById('difficultySection');
-                
+
                 // Only allow difficulty selection if buttons are visible
                 if (!difficultySection.classList.contains('hidden')) {
                     const difficultyNames = {
@@ -403,22 +434,22 @@ class ChineseCharacterApp {
     
     getNextCharacter() {
         let levelChars;
-        
-        if (this.isMarathonMode) {
-            // In marathon mode, use characters from 0 to marathonMax
-            levelChars = this.characters.slice(0, Math.min(this.marathonMax, this.characters.length));
+
+        if (this.isReviewMode) {
+            // In review mode, use characters from 0 to reviewMax
+            levelChars = this.characters.slice(0, Math.min(this.reviewMax, this.characters.length));
         } else {
             // Regular level mode
             const levelInfo = this.levelConfig[this.currentLevel];
             levelChars = this.characters.slice(levelInfo.start, Math.min(levelInfo.end, this.characters.length));
         }
-        
+
         if (levelChars.length === 0) return null;
         
         // Use spaced repetition algorithm
         const weights = levelChars.map((char, index) => {
-            const actualIndex = this.isMarathonMode ? index : index;
-            const key = this.isMarathonMode ? `marathon_${actualIndex}` : `${this.currentLevel}_${index}`;
+            const actualIndex = this.isReviewMode ? index : index;
+            const key = this.isReviewMode ? `review_${actualIndex}` : `${this.currentLevel}_${index}`;
             const progress = this.userProgress[key] || { difficulty: 3, lastSeen: 0, count: 0 };
             
             // Calculate weight based on difficulty and time since last seen
@@ -537,7 +568,7 @@ class ChineseCharacterApp {
     recordDifficulty(difficulty) {
         if (!this.currentChar) return;
         
-        const key = this.isMarathonMode ? `marathon_${this.currentCharIndex}` : `${this.currentLevel}_${this.currentCharIndex}`;
+        const key = this.isReviewMode ? `review_${this.currentCharIndex}` : `${this.currentLevel}_${this.currentCharIndex}`;
         
         if (!this.userProgress[key]) {
             this.userProgress[key] = {
@@ -625,8 +656,8 @@ class ChineseCharacterApp {
     updateCardsSeen() {
         let maxChars, startIdx;
 
-        if (this.isMarathonMode) {
-            maxChars = Math.min(this.marathonMax, this.characters.length);
+        if (this.isReviewMode) {
+            maxChars = Math.min(this.reviewMax, this.characters.length);
             startIdx = 0;
         } else if (this.levelConfig[this.currentLevel]) {
             const levelInfo = this.levelConfig[this.currentLevel];
@@ -639,8 +670,8 @@ class ChineseCharacterApp {
         let seenCount = 0;
 
         for (let i = 0; i < maxChars; i++) {
-            const actualIdx = this.isMarathonMode ? i : i;
-            const key = this.isMarathonMode ? `marathon_${actualIdx}` : `${this.currentLevel}_${i}`;
+            const actualIdx = this.isReviewMode ? i : i;
+            const key = this.isReviewMode ? `review_${actualIdx}` : `${this.currentLevel}_${i}`;
             const progress = this.userProgress[key];
 
             // Count character as seen if it has been attempted at least once
@@ -656,8 +687,8 @@ class ChineseCharacterApp {
     updateAverageScore() {
         let maxChars, startIdx;
 
-        if (this.isMarathonMode) {
-            maxChars = Math.min(this.marathonMax, this.characters.length);
+        if (this.isReviewMode) {
+            maxChars = Math.min(this.reviewMax, this.characters.length);
             startIdx = 0;
         } else if (this.levelConfig[this.currentLevel]) {
             const levelInfo = this.levelConfig[this.currentLevel];
@@ -671,13 +702,13 @@ class ChineseCharacterApp {
         let attemptedCount = 0;
 
         for (let i = 0; i < maxChars; i++) {
-            const actualIdx = this.isMarathonMode ? i : i;
-            const key = this.isMarathonMode ? `marathon_${actualIdx}` : `${this.currentLevel}_${i}`;
+            const actualIdx = this.isReviewMode ? i : i;
+            const key = this.isReviewMode ? `review_${actualIdx}` : `${this.currentLevel}_${i}`;
             const progress = this.userProgress[key];
 
             if (progress && progress.count > 0) {
-                // For marathon mode, calculate average of all individual difficulty scores
-                if (this.isMarathonMode && progress.history && progress.history.length > 0) {
+                // For review mode, calculate average of all individual difficulty scores
+                if (this.isReviewMode && progress.history && progress.history.length > 0) {
                     // Average all individual attempts (1,2,3,4,5)
                     const individualAvg = progress.history.reduce((sum, score) => sum + score, 0) / progress.history.length;
                     totalScore += individualAvg;
@@ -692,7 +723,7 @@ class ChineseCharacterApp {
         if (attemptedCount > 0) {
             const avgScore = totalScore / attemptedCount;
             const grade = this.scoreToGrade(avgScore);
-            if (this.isMarathonMode) {
+            if (this.isReviewMode) {
                 // Show number of characters actually seen, not total possible
                 document.getElementById('avgScore').textContent = `Avg: ${avgScore.toFixed(1)}/5 (${grade})`;
             } else {
@@ -704,7 +735,7 @@ class ChineseCharacterApp {
                 }
             }
         } else {
-            if (this.isMarathonMode) {
+            if (this.isReviewMode) {
                 document.getElementById('avgScore').textContent = `Avg: -`;
             } else {
                 document.getElementById('avgScore').textContent = 'Avg: -';
@@ -739,8 +770,8 @@ class ChineseCharacterApp {
     }
     
     getLevelColors(level) {
-        if (this.isMarathonMode) {
-            // Marathon mode: rainbow gradient
+        if (this.isReviewMode) {
+            // Review mode: rainbow gradient
             return {
                 primary: '#667eea',
                 secondary: '#764ba2',
@@ -804,11 +835,11 @@ class ChineseCharacterApp {
             };
         });
         
-        // Update marathon button if in marathon mode
-        const marathonBtn = document.getElementById('marathonBtn');
-        if (this.isMarathonMode && marathonBtn) {
-            marathonBtn.style.background = colors.background;
-            marathonBtn.style.borderColor = colors.primary;
+        // Update review button if in review mode
+        const reviewBtn = document.getElementById('reviewBtn');
+        if (this.isReviewMode && reviewBtn) {
+            reviewBtn.style.background = colors.background;
+            reviewBtn.style.borderColor = colors.primary;
         }
     }
     
@@ -831,8 +862,8 @@ class ChineseCharacterApp {
     updateLevelDropdownMastery() {
         const levelSelect = document.getElementById('levelSelect');
 
-        // Skip update if in marathon mode (dropdown is hidden)
-        if (this.isMarathonMode) return;
+        // Skip update if in review mode (dropdown is hidden)
+        if (this.isReviewMode) return;
 
         // Update scores for each option
         for (let i = 0; i < levelSelect.options.length; i++) {
@@ -882,8 +913,8 @@ class ChineseCharacterApp {
     saveSettings() {
         const settings = {
             currentLevel: this.currentLevel,
-            isMarathonMode: this.isMarathonMode,
-            marathonMax: this.marathonMax
+            isReviewMode: this.isReviewMode,
+            reviewMax: this.reviewMax
         };
         localStorage.setItem('chineseCharSettings', JSON.stringify(settings));
     }
@@ -893,16 +924,16 @@ class ChineseCharacterApp {
         if (saved) {
             const settings = JSON.parse(saved);
             this.currentLevel = settings.currentLevel || 'level-1';
-            this.isMarathonMode = settings.isMarathonMode || false;
-            this.marathonMax = settings.marathonMax || 100;
+            this.isReviewMode = settings.isReviewMode || false;
+            this.reviewMax = settings.reviewMax || 100;
         }
     }
     
-    clearMarathonProgress() {
-        // Remove all marathon progress entries
+    clearReviewProgress() {
+        // Remove all review progress entries
         const keysToDelete = [];
         for (const key in this.userProgress) {
-            if (key.startsWith('marathon_')) {
+            if (key.startsWith('review_')) {
                 keysToDelete.push(key);
             }
         }

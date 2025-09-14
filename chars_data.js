@@ -5978,7 +5978,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "544",
     character: "站",
     pinyin: "zhàn",
-    definition: "stand; station"
+    definition: "stand; station",
     radical: "立",
     radical_code: "117.5",
     stroke_count: "10",
@@ -6176,7 +6176,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "562",
     character: "绝",
     pinyin: "jué",
-    definition: "cut; sever; terminate"
+    definition: "cut; sever; terminate",
     radical: "糸",
     radical_code: "120.6",
     stroke_count: "9",
@@ -6275,7 +6275,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "571",
     character: "项",
     pinyin: "xiàng",
-    definition: "neck; sum; funds"
+    definition: "neck; sum; funds",
     radical: "頁",
     radical_code: "181.3",
     stroke_count: "9",
@@ -6715,7 +6715,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "611",
     character: "坐",
     pinyin: "zuò",
-    definition: "sit; seat; ride"
+    definition: "sit; seat; ride",
     radical: "土",
     radical_code: "32.4",
     stroke_count: "7",
@@ -7375,7 +7375,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "671",
     character: "食",
     pinyin: "shí",
-    definition: "eat; meal; food"
+    definition: "eat; meal; food",
     radical: "食",
     radical_code: "184.0",
     stroke_count: "9",
@@ -8233,7 +8233,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "749",
     character: "善",
     pinyin: "shàn",
-    definition: "good; virtuous; kind"
+    definition: "good; virtuous; kind",
     radical: "口",
     radical_code: "30.9",
     stroke_count: "12",
@@ -8531,7 +8531,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "776",
     character: "香",
     pinyin: "xiāng",
-    definition: "fragrant; sweet; incense"
+    definition: "fragrant; sweet; incense",
     radical: "香",
     radical_code: "186.0",
     stroke_count: "9",
@@ -8762,7 +8762,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "797",
     character: "酒",
     pinyin: "jiǔ",
-    definition: "wine; spirits; liquor"
+    definition: "wine; spirits; liquor",
     radical: "酉",
     radical_code: "164.3",
     stroke_count: "10",
@@ -9545,7 +9545,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "868",
     character: "困",
     pinyin: "kùn",
-    definition: "surround; besiege; difficult"
+    definition: "surround; besiege; difficult",
     radical: "囗",
     radical_code: "31.4",
     stroke_count: "7",
@@ -10150,7 +10150,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "923",
     character: "附",
     pinyin: "fù",
-    definition: "adhere; append; rely on"
+    definition: "adhere; append; rely on",
     radical: "阜",
     radical_code: "170.5",
     stroke_count: "7",
@@ -11482,7 +11482,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1044",
     character: "典",
     pinyin: "diǎn",
-    definition: "law; classic; scripture"
+    definition: "law; classic; scripture",
     radical: "八",
     radical_code: "12.6",
     stroke_count: "8",
@@ -14004,7 +14004,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1273",
     character: "疾",
     pinyin: "jí",
-    definition: "illness; disease; hate"
+    definition: "illness; disease; hate",
     radical: "疒",
     radical_code: "104.5",
     stroke_count: "10",
@@ -14170,7 +14170,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1288",
     character: "驻",
     pinyin: "zhù",
-    definition: "stationed; reside; stop"
+    definition: "stationed; reside; stop",
     radical: "馬",
     radical_code: "187.5",
     stroke_count: "8",
@@ -14445,7 +14445,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1313",
     character: "徐",
     pinyin: "xú",
-    definition: "slowly; quietly; composed"
+    definition: "slowly; quietly; composed",
     radical: "彳",
     radical_code: "60.7",
     stroke_count: "10",
@@ -15006,7 +15006,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1364",
     character: "恢",
     pinyin: "huī",
-    definition: "restore; big; vast"
+    definition: "restore; big; vast",
     radical: "心",
     radical_code: "61.6",
     stroke_count: "9",
@@ -15050,7 +15050,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1368",
     character: "仰",
     pinyin: "yǎng",
-    definition: "look up; rely on; admire"
+    definition: "look up; rely on; admire",
     radical: "人",
     radical_code: "9.4",
     stroke_count: "6",
@@ -15600,7 +15600,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1418",
     character: "菲",
     pinyin: "fēi",
-    definition: "fragrant; luxuriant; Philippines"
+    definition: "fragrant; luxuriant; Philippines",
     radical: "艸",
     radical_code: "140.8",
     stroke_count: "11",
@@ -15974,7 +15974,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1452",
     character: "番",
     pinyin: "fān",
-    definition: "take turns; repeat"
+    definition: "take turns; repeat",
     radical: "田",
     radical_code: "102.7",
     stroke_count: "12",
@@ -16657,7 +16657,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1514",
     character: "掩",
     pinyin: "yǎn",
-    definition: "cover; shut; conceal"
+    definition: "cover; shut; conceal",
     radical: "手",
     radical_code: "64.8",
     stroke_count: "11",
@@ -18353,7 +18353,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1668",
     character: "悟",
     pinyin: "wù",
-    definition: "apprehend; realize; aware"
+    definition: "apprehend; realize; aware",
     radical: "心",
     radical_code: "61.7",
     stroke_count: "10",
@@ -21073,7 +21073,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1915",
     character: "郁",
     pinyin: "yù",
-    definition: "sweet smelling; aromatic"
+    definition: "sweet smelling; aromatic",
     radical: "邑",
     radical_code: "163.6",
     stroke_count: "8",
@@ -21546,7 +21546,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1958",
     character: "舌",
     pinyin: "shé",
-    definition: "tongue; clapper"
+    definition: "tongue; clapper",
     radical: "舌",
     radical_code: "135.0",
     stroke_count: "6",
@@ -21579,7 +21579,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1961",
     character: "拾",
     pinyin: "shí",
-    definition: "pick up; collect"
+    definition: "pick up; collect",
     radical: "手",
     radical_code: "64.6",
     stroke_count: "9",
@@ -21888,7 +21888,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "1989",
     character: "傻",
     pinyin: "shǎ",
-    definition: "foolish; silly; stupid"
+    definition: "foolish; silly; stupid",
     radical: "人",
     radical_code: "9.11",
     stroke_count: "13",
@@ -22198,7 +22198,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2017",
     character: "遂",
     pinyin: "suì",
-    definition: "comply; follow; thereupon"
+    definition: "comply; follow; thereupon",
     radical: "辵",
     radical_code: "162.9",
     stroke_count: "12",
@@ -23684,7 +23684,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2152",
     character: "甫",
     pinyin: "fǔ",
-    definition: "begin; man; father; great"
+    definition: "begin; man; father; great",
     radical: "用",
     radical_code: "101.2",
     stroke_count: "7",
@@ -23717,7 +23717,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2155",
     character: "宴",
     pinyin: "yàn",
-    definition: "entertain; feast; banquet"
+    definition: "entertain; feast; banquet",
     radical: "宀",
     radical_code: "40.7",
     stroke_count: "10",
@@ -24586,7 +24586,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2234",
     character: "僚",
     pinyin: "liáo",
-    definition: "companion; colleague; officials"
+    definition: "companion; colleague; officials",
     radical: "人",
     radical_code: "9.12",
     stroke_count: "14",
@@ -25071,7 +25071,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2278",
     character: "溶",
     pinyin: "róng",
-    definition: "melt; dissolve; overflowing"
+    definition: "melt; dissolve; overflowing",
     radical: "水",
     radical_code: "85.10",
     stroke_count: "13",
@@ -25456,7 +25456,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2313",
     character: "寨",
     pinyin: "zhài",
-    definition: "stockade; stronghold; outpost"
+    definition: "stockade; stronghold; outpost",
     radical: "宀",
     radical_code: "40.11",
     stroke_count: "14",
@@ -27910,7 +27910,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2536",
     character: "贬",
     pinyin: "biǎn",
-    definition: "decrease; lower; criticize"
+    definition: "decrease; lower; criticize",
     radical: "貝",
     radical_code: "154.5",
     stroke_count: "8",
@@ -28130,7 +28130,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2556",
     character: "榜",
     pinyin: "bǎng",
-    definition: "placard; list"
+    definition: "placard; list",
     radical: "木",
     radical_code: "75.10",
     stroke_count: "14",
@@ -28703,7 +28703,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2608",
     character: "奎",
     pinyin: "kuí",
-    definition: "stride; lunar mansion"
+    definition: "stride; lunar mansion",
     radical: "大",
     radical_code: "37.6",
     stroke_count: "9",
@@ -29044,7 +29044,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2639",
     character: "妆",
     pinyin: "zhuāng",
-    definition: "adorn; dress up"
+    definition: "adorn; dress up",
     radical: "女",
     radical_code: "38.3",
     stroke_count: "6",
@@ -29726,7 +29726,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2701",
     character: "遏",
     pinyin: "è",
-    definition: "stop; suppress; curb"
+    definition: "stop; suppress; curb",
     radical: "辵",
     radical_code: "162.9",
     stroke_count: "12",
@@ -30431,7 +30431,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2765",
     character: "茵",
     pinyin: "yīn",
-    definition: "cushion; mattress; wormwood"
+    definition: "cushion; mattress; wormwood",
     radical: "艸",
     radical_code: "140.6",
     stroke_count: "9",
@@ -31390,7 +31390,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2852",
     character: "嘎",
     pinyin: "gā",
-    definition: "sound of laughter; malevolent"
+    definition: "sound of laughter; malevolent",
     radical: "口",
     radical_code: "30.11",
     stroke_count: "14",
@@ -31742,7 +31742,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2884",
     character: "粪",
     pinyin: "fèn",
-    definition: "manure; dung; excrement"
+    definition: "manure; dung; excrement",
     radical: "米",
     radical_code: "119.6",
     stroke_count: "12",
@@ -32018,7 +32018,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2909",
     character: "眩",
     pinyin: "xuàn",
-    definition: "confuse; dizzy; dazed"
+    definition: "confuse; dizzy; dazed",
     radical: "目",
     radical_code: "109.5",
     stroke_count: "10",
@@ -32942,7 +32942,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2993",
     character: "槽",
     pinyin: "cáo",
-    definition: "trough; manger; vat"
+    definition: "trough; manger; vat",
     radical: "木",
     radical_code: "75.11",
     stroke_count: "15",
@@ -33008,7 +33008,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "2999",
     character: "颐",
     pinyin: "yí",
-    definition: "cheeks; jaw; nourish"
+    definition: "cheeks; jaw; nourish",
     radical: "頁",
     radical_code: "181.7",
     stroke_count: "13",
@@ -33184,7 +33184,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3015",
     character: "绎",
     pinyin: "yì",
-    definition: "unravel silk; interpret"
+    definition: "unravel silk; interpret",
     radical: "糸",
     radical_code: "120.5",
     stroke_count: "8",
@@ -34639,7 +34639,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3147",
     character: "淳",
     pinyin: "chún",
-    definition: "honest; simple; unsophisticated"
+    definition: "honest; simple; unsophisticated",
     radical: "水",
     radical_code: "85.8",
     stroke_count: "11",
@@ -35244,7 +35244,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3202",
     character: "唔",
     pinyin: "wú",
-    definition: "hold in mouth; bite"
+    definition: "hold in mouth; bite",
     radical: "口",
     radical_code: "30.7",
     stroke_count: "10",
@@ -36124,7 +36124,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3282",
     character: "樊",
     pinyin: "fán",
-    definition: "railing; fence"
+    definition: "railing; fence",
     radical: "木",
     radical_code: "75.11",
     stroke_count: "15",
@@ -37566,7 +37566,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3413",
     character: "漓",
     pinyin: "lí",
-    definition: "river; water dripping"
+    definition: "river; water dripping",
     radical: "水",
     radical_code: "85.10",
     stroke_count: "13",
@@ -38556,7 +38556,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3503",
     character: "萃",
     pinyin: "cuì",
-    definition: "dense; thick; collect"
+    definition: "dense; thick; collect",
     radical: "艸",
     radical_code: "140.8",
     stroke_count: "11",
@@ -38699,7 +38699,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "3516",
     character: "酥",
     pinyin: "sū",
-    definition: "butter; flaky; crispy"
+    definition: "butter; flaky; crispy",
     radical: "酉",
     radical_code: "164.5",
     stroke_count: "12",

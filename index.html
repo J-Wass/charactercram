@@ -12,17 +12,24 @@
             <select id="levelSelect">
                 <!-- Will be populated by JavaScript -->
             </select>
-            <button id="marathonBtn" class="btn btn-marathon">Marathon Mode</button>
+            <button id="reviewBtn" class="btn btn-review">Review Mode</button>
         </div>
         
-        <div id="marathonModal" class="modal hidden">
+        <div id="reviewModal" class="modal hidden">
             <div class="modal-content">
-                <h3>Marathon Mode</h3>
-                <p>Practice characters 1 to <span id="marathonValue">100</span></p>
-                <input type="range" id="marathonSlider" min="10" max="5000" value="100" step="10">
+                <h3>Review Mode</h3>
+                <div style="margin: 20px 0;">
+                    <p style="margin-bottom: 15px;">Practice characters 1 to <input type="number" id="reviewInput" min="10" max="5000" value="100" style="width: 100px; padding: 8px; border: 2px solid #667eea; border-radius: 5px; font-size: 18px; font-weight: bold; text-align: center;"></p>
+                    <div class="preset-buttons" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
+                        <button class="preset-btn" data-value="50">50</button>
+                        <button class="preset-btn" data-value="100">100</button>
+                        <button class="preset-btn" data-value="1000">1000</button>
+                        <button class="preset-btn" data-value="5000">All (5000)</button>
+                    </div>
+                </div>
                 <div class="modal-buttons">
-                    <button id="startMarathon" class="btn btn-primary">Start Marathon</button>
-                    <button id="cancelMarathon" class="btn btn-secondary">Cancel</button>
+                    <button id="startReview" class="btn btn-primary">Start Review</button>
+                    <button id="cancelReview" class="btn btn-secondary">Cancel</button>
                 </div>
             </div>
         </div>
