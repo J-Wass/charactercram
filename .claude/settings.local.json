@@ -18,7 +18,9 @@
       "Bash(gh repo set-default:*)",
       "Bash(gh api:*)",
       "WebFetch(domain:github.com)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(mv:*)",
+      "Read(//c/**)"
     ],
     "deny": [],
     "ask": []

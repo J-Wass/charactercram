@@ -377,13 +377,13 @@ class ChineseCharacterApp {
         const answerContainer = document.getElementById('answerContainer');
         const difficultySection = document.getElementById('difficultySection');
         const canvasControls = document.querySelector('.canvas-controls');
-        const strokeGif = document.getElementById('strokeGif');
+        const gif = document.getElementById('strokeGif');
         
         // Set the GIF source
-        strokeGif.src = `stroke_gifs/${this.currentChar.character}.gif`;
+        gif.src = `img/${this.currentChar.character}.gif`;
         
         // Extract first frame and set as canvas background
-        this.setCanvasBackground(`stroke_gifs/${this.currentChar.character}.gif`);
+        this.setCanvasBackground(`img/${this.currentChar.character}.gif`);
         
         // Show the answer container and difficulty buttons
         answerContainer.classList.remove('hidden');
@@ -420,7 +420,7 @@ class ChineseCharacterApp {
             progress.history.push(difficulty);
             
             // Calculate weighted average of recent difficulties
-            const recentHistory = progress.history.slice(-5); // Last 5 attempts
+            const recentHistory = progress.history.slice(-3); // Last 3 attempts
             progress.difficulty = recentHistory.reduce((sum, d) => sum + d, 0) / recentHistory.length;
             progress.lastSeen = Date.now();
             progress.count++;

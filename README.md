@@ -83,7 +83,7 @@ charactercram/
 ├── style.css          # Styles and responsive design
 ├── chars_data.js      # Embedded character data (9900+ characters)
 ├── chars.json         # Raw character data
-├── stroke_gifs/       # Stroke order animations (1000+ files)
+├── gifs/              # Static Media (1000+ files)
 └── README.md          # This file
 ```
 
