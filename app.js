@@ -397,6 +397,7 @@ class ChineseCharacterApp {
     startNewRound() {
         this.currentCharIndex = 0;
         this.updateLevelDropdownMastery();
+        this.updateCardsSeen();
         this.nextCharacter();
     }
     
@@ -488,8 +489,8 @@ class ChineseCharacterApp {
         this.removeCanvasBackground();
         this.clearCanvas();
         
-        // Update mastery level and average score
-        this.updateMasteryLevel();
+        // Update cards seen and average score
+        this.updateCardsSeen();
         this.updateAverageScore();
         this.updateLevelDropdownMastery();
 
@@ -621,9 +622,9 @@ class ChineseCharacterApp {
         }
     }
     
-    updateMasteryLevel() {
+    updateCardsSeen() {
         let maxChars, startIdx;
-        
+
         if (this.isMarathonMode) {
             maxChars = Math.min(this.marathonMax, this.characters.length);
             startIdx = 0;
@@ -634,27 +635,27 @@ class ChineseCharacterApp {
         } else {
             return; // Invalid level
         }
-        
-        let masteredCount = 0;
-        
+
+        let seenCount = 0;
+
         for (let i = 0; i < maxChars; i++) {
             const actualIdx = this.isMarathonMode ? i : i;
             const key = this.isMarathonMode ? `marathon_${actualIdx}` : `${this.currentLevel}_${i}`;
             const progress = this.userProgress[key];
-            
-            // Consider a character mastered if difficulty >= 4.0 (Easy/Very Easy) and seen at least 2 times
-            if (progress && progress.difficulty >= 4.0 && progress.count >= 2) {
-                masteredCount++;
+
+            // Count character as seen if it has been attempted at least once
+            if (progress && progress.count > 0) {
+                seenCount++;
             }
         }
-        
-        const masteryPercent = Math.round((masteredCount / maxChars) * 100);
-        document.getElementById('masteryLevel').textContent = `${masteryPercent}% mastered`;
+
+        const cardsText = seenCount === 1 && maxChars === 1 ? 'card' : 'cards';
+        document.getElementById('cardsSeen').textContent = `${seenCount}/${maxChars} ${cardsText} seen`;
     }
     
     updateAverageScore() {
         let maxChars, startIdx;
-        
+
         if (this.isMarathonMode) {
             maxChars = Math.min(this.marathonMax, this.characters.length);
             startIdx = 0;
@@ -665,15 +666,15 @@ class ChineseCharacterApp {
         } else {
             return; // Invalid level
         }
-        
+
         let totalScore = 0;
         let attemptedCount = 0;
-        
+
         for (let i = 0; i < maxChars; i++) {
             const actualIdx = this.isMarathonMode ? i : i;
             const key = this.isMarathonMode ? `marathon_${actualIdx}` : `${this.currentLevel}_${i}`;
             const progress = this.userProgress[key];
-            
+
             if (progress && progress.count > 0) {
                 // For marathon mode, calculate average of all individual difficulty scores
                 if (this.isMarathonMode && progress.history && progress.history.length > 0) {
@@ -687,44 +688,54 @@ class ChineseCharacterApp {
                 attemptedCount++;
             }
         }
-        
+
         if (attemptedCount > 0) {
             const avgScore = totalScore / attemptedCount;
+            const grade = this.scoreToGrade(avgScore);
             if (this.isMarathonMode) {
                 // Show number of characters actually seen, not total possible
-                document.getElementById('avgScore').textContent = `Avg: ${avgScore.toFixed(1)}/5 (${attemptedCount} seen)`;
+                document.getElementById('avgScore').textContent = `Avg: ${avgScore.toFixed(1)}/5 (${grade})`;
             } else {
-                document.getElementById('avgScore').textContent = `Avg Score: ${avgScore.toFixed(1)}/5`;
+                // Only show grade if all cards have been seen
+                if (attemptedCount === maxChars) {
+                    document.getElementById('avgScore').textContent = `Avg: ${avgScore.toFixed(1)}/5 (${grade})`;
+                } else {
+                    document.getElementById('avgScore').textContent = `Avg: ${avgScore.toFixed(1)}/5`;
+                }
             }
         } else {
             if (this.isMarathonMode) {
-                document.getElementById('avgScore').textContent = `Avg: - (0 seen)`;
+                document.getElementById('avgScore').textContent = `Avg: -`;
             } else {
-                document.getElementById('avgScore').textContent = 'Avg Score: -';
+                document.getElementById('avgScore').textContent = 'Avg: -';
             }
         }
     }
     
     getAverageScoreForLevel(level) {
-        if (!this.levelConfig[level]) return 0;
-        
+        if (!this.levelConfig[level]) return { score: 0, seenCount: 0, totalCount: 0 };
+
         const levelInfo = this.levelConfig[level];
         const maxChars = levelInfo.end - levelInfo.start;
         let totalScore = 0;
         let attemptedCount = 0;
-        
+
         for (let i = 0; i < maxChars; i++) {
             const key = `${level}_${i}`;
             const progress = this.userProgress[key];
-            
+
             if (progress && progress.count > 0) {
                 // Use difficulty directly as score (1=Very Hard to 5=Very Easy)
                 totalScore += progress.difficulty;
                 attemptedCount++;
             }
         }
-        
-        return attemptedCount > 0 ? totalScore / attemptedCount : 0;
+
+        return {
+            score: attemptedCount > 0 ? totalScore / attemptedCount : 0,
+            seenCount: attemptedCount,
+            totalCount: maxChars
+        };
     }
     
     getLevelColors(level) {
@@ -819,31 +830,41 @@ class ChineseCharacterApp {
     
     updateLevelDropdownMastery() {
         const levelSelect = document.getElementById('levelSelect');
-        
+
         // Skip update if in marathon mode (dropdown is hidden)
         if (this.isMarathonMode) return;
-        
+
         // Update scores for each option
         for (let i = 0; i < levelSelect.options.length; i++) {
             const option = levelSelect.options[i];
             const levelValue = option.value;
-            const avgScore = this.getAverageScoreForLevel(levelValue);
-            
+            const levelStats = this.getAverageScoreForLevel(levelValue);
+
             const levelNum = i + 1;
             const start = i * 10 + 1;
             const end = (i + 1) * 10;
-            
-            if (avgScore > 0) {
-                const grade = this.scoreToGrade(avgScore);
-                option.textContent = `Level ${levelNum} (${grade})`;
-                
-                // Color based on score
-                const fillPercent = Math.round((avgScore / 5) * 100);
-                const hue = fillPercent * 1.2; // 0-120 (red to green)
-                const color = `hsl(${hue}, 50%, 50%)`;
-                option.style.background = `linear-gradient(to right, ${color} ${fillPercent}%, #f3f4f6 ${fillPercent}%)`;
+
+            if (levelStats.score > 0) {
+                // Only show grade if all cards have been seen
+                if (levelStats.seenCount === levelStats.totalCount) {
+                    const grade = this.scoreToGrade(levelStats.score);
+                    option.textContent = `Level ${levelNum} (${grade})`;
+
+                    // Color based on score
+                    const fillPercent = Math.round((levelStats.score / 5) * 100);
+                    const hue = fillPercent * 1.2; // 0-120 (red to green)
+                    const color = `hsl(${hue}, 50%, 50%)`;
+                    option.style.background = `linear-gradient(to right, ${color} ${fillPercent}%, #f3f4f6 ${fillPercent}%)`;
+                } else {
+                    // Show progress without grade
+                    option.textContent = `Level ${levelNum} (${levelStats.seenCount}/${levelStats.totalCount})`;
+
+                    // Color based on progress
+                    const progressPercent = Math.round((levelStats.seenCount / levelStats.totalCount) * 100);
+                    option.style.background = `linear-gradient(to right, #cbd5e0 ${progressPercent}%, #f3f4f6 ${progressPercent}%)`;
+                }
             } else {
-                option.textContent = `Level ${levelNum} (N/A)`;
+                option.textContent = `Level ${levelNum}`;
                 option.style.background = '#f3f4f6';
             }
         }
