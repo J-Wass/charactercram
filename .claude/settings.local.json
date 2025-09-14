@@ -20,7 +20,9 @@
       "WebFetch(domain:github.com)",
       "Bash(curl:*)",
       "Bash(mv:*)",
-      "Read(//c/**)"
+      "Read(//c/**)",
+      "Bash(tasklist)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

@@ -103,7 +103,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "10",
     character: "小",
     pinyin: "xiǎo",
-    definition: "small, little"
+    definition: "small, little",
     radical: "小",
     radical_code: "42.0",
     stroke_count: "3",
@@ -213,7 +213,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "20",
     character: "国",
     pinyin: "guó",
-    definition: "country, nation"
+    definition: "country, nation",
     radical: "囗",
     radical_code: "31.5",
     stroke_count: "8",
@@ -323,7 +323,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "30",
     character: "可",
     pinyin: "kě",
-    definition: "can, may; possible"
+    definition: "can, may; possible",
     radical: "口",
     radical_code: "30.2",
     stroke_count: "5",
@@ -433,7 +433,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "40",
     character: "于",
     pinyin: "yú",
-    definition: "at, in; than"
+    definition: "at, in; than",
     radical: "二",
     radical_code: "7.1",
     stroke_count: "3",
@@ -532,7 +532,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "49",
     character: "作",
     pinyin: "zuò",
-    definition: "to do, make; work"
+    definition: "to do, make; work",
     radical: "人",
     radical_code: "9.5",
     stroke_count: "7",
@@ -642,7 +642,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "59",
     character: "成",
     pinyin: "chéng",
-    definition: "to become; success"
+    definition: "to become; success",
     radical: "戈",
     radical_code: "62.3",
     stroke_count: "6",
@@ -752,7 +752,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "69",
     character: "同",
     pinyin: "tóng",
-    definition: "same; together with"
+    definition: "same; together with",
     radical: "口",
     radical_code: "30.3",
     stroke_count: "6",
@@ -862,7 +862,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "79",
     character: "分",
     pinyin: "fēn",
-    definition: "to divide; minute; point"
+    definition: "to divide; minute; point",
     radical: "刀",
     radical_code: "18.2",
     stroke_count: "4",
@@ -972,7 +972,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "89",
     character: "理",
     pinyin: "lǐ",
-    definition: "reason; to manage; principle"
+    definition: "reason; to manage; principle",
     radical: "玉",
     radical_code: "96.7",
     stroke_count: "11",
@@ -1093,7 +1093,7 @@ const CHINESE_CHARACTERS = [
     frequency_rank: "100",
     character: "实",
     pinyin: "shí",
-    definition: "real, true; honest"
+    definition: "real, true; honest",
     radical: "宀",
     radical_code: "40.5",
     stroke_count: "8",

@@ -19,7 +19,7 @@ class ChineseCharacterApp {
             'beginner': 25,
             'intermediate': 100,
             'advanced': 1000,
-            'master': 9900
+            'master': 5000
         };
         
         this.init();
@@ -582,7 +582,7 @@ class ChineseCharacterApp {
             'beginner': 'Beginner (25 chars)', 
             'intermediate': 'Intermediate (100 chars)',
             'advanced': 'Advanced (1000 chars)',
-            'master': 'Master (All chars)'
+            'master': 'Master (5000 chars)'
         };
         
         const levelColors = {
@@ -619,87 +619,6 @@ class ChineseCharacterApp {
                 option.style.background = '#f3f4f6';
             }
         });
-    }
-    
-    updateStatistics() {
-        const maxChars = Math.min(this.levelConfig[this.currentLevel], this.characters.length);
-        
-        // Calculate progress
-        let veryEasyCount = 0;
-        let totalAttempted = 0;
-        const problematicChars = [];
-        
-        for (let i = 0; i < maxChars; i++) {
-            const key = `${this.currentLevel}_${i}`;
-            const progress = this.userProgress[key];
-            
-            if (progress && progress.count > 0) {
-                totalAttempted++;
-                
-                if (progress.difficulty >= 4.0 && progress.count >= 2) {
-                    veryEasyCount++;
-                }
-                
-                // Convert difficulty to score (1=Very Hard gets score 5, 5=Very Easy gets score 1)
-                const score = 6 - progress.difficulty;
-                if (score <= 2.5) { // Show characters with low scores (≤2.5/5)
-                    problematicChars.push({
-                        character: this.characters[i].character,
-                        pinyin: this.characters[i].pinyin,
-                        difficulty: progress.difficulty,
-                        score: score,
-                        attempts: progress.count
-                    });
-                }
-            }
-        }
-        
-        // Sort problematic characters by lowest score (most problematic first)
-        problematicChars.sort((a, b) => a.score - b.score);
-        
-        // Update progress bar
-        const progressPercent = totalAttempted > 0 ? (veryEasyCount / totalAttempted) * 100 : 0;
-        document.getElementById('progressFill').style.width = `${progressPercent}%`;
-        document.getElementById('progressText').textContent = `${Math.round(progressPercent)}% of attempted characters mastered`;
-        
-        // Update problematic characters list
-        const problematicList = document.getElementById('problematicChars');
-        problematicList.innerHTML = '';
-        
-        problematicChars.slice(0, 10).forEach(char => {
-            const li = document.createElement('li');
-            li.innerHTML = `
-                <span class="char-display">${char.character}</span>
-                <span class="char-pinyin">${char.pinyin}</span>
-                <span class="char-difficulty">Score: ${char.score.toFixed(1)}/5</span>
-            `;
-            problematicList.appendChild(li);
-        });
-        
-        if (problematicChars.length === 0) {
-            problematicList.innerHTML = '<li>No problematic characters yet!</li>';
-        }
-        
-        // Update level stats
-        const levelStats = document.getElementById('levelStats');
-        levelStats.innerHTML = `
-            <div class="stat-item">
-                <span>Total Characters:</span>
-                <span>${maxChars}</span>
-            </div>
-            <div class="stat-item">
-                <span>Attempted:</span>
-                <span>${totalAttempted}</span>
-            </div>
-            <div class="stat-item">
-                <span>Mastered:</span>
-                <span>${veryEasyCount}</span>
-            </div>
-            <div class="stat-item">
-                <span>Needs Practice:</span>
-                <span>${problematicChars.length}</span>
-            </div>
-        `;
     }
     
     saveProgress() {
