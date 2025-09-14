@@ -149,6 +149,11 @@ body {
     gap: 10px;
 }
 
+.canvas-area {
+    position: relative;
+    display: inline-block;
+}
+
 .canvas-container h3 {
     color: #666;
     font-size: 16px;
@@ -166,6 +171,33 @@ body {
     cursor: crosshair;
     touch-action: none;
     background: white;
+}
+
+.clear-x-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #ffffff75;
+    color: #d1d5db;
+    border: none;
+    font-size: 48px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    padding-bottom: 5px;
+    font-weight: normal;
+}
+
+.clear-x-btn:hover {
+    color: #9ca3af;
+    transform: scale(1.1);
 }
 
 #strokeGif {

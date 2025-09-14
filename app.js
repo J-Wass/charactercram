@@ -511,10 +511,9 @@ class ChineseCharacterApp {
         document.getElementById('answerContainer').classList.add('hidden');
         document.getElementById('difficultySection').classList.add('hidden');
         
-        // Show the canvas control buttons again and reset their visibility
+        // Show the show answer button again
         document.querySelector('.canvas-controls').style.display = 'flex';
         document.getElementById('showAnswerBtn').style.display = 'inline-block';
-        document.getElementById('clearBtn').style.display = 'inline-block';
         
         // Clear canvas and remove background
         this.removeCanvasBackground();
@@ -552,9 +551,8 @@ class ChineseCharacterApp {
         answerContainer.classList.remove('hidden');
         difficultySection.classList.remove('hidden');
         
-        // Keep clear button visible but hide show answer button
+        // Hide show answer button
         document.getElementById('showAnswerBtn').style.display = 'none';
-        document.getElementById('clearBtn').style.display = 'inline-block';
         
         // Scroll to bottom to show difficulty buttons
         setTimeout(() => {

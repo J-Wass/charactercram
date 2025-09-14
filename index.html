@@ -50,7 +50,10 @@
                 <div class="canvas-wrapper">
                     <div class="canvas-container">
                         <h3>Your Attempt</h3>
-                        <canvas id="drawingCanvas" width="300" height="300"></canvas>
+                        <div class="canvas-area">
+                            <canvas id="drawingCanvas" width="300" height="300"></canvas>
+                            <button id="clearBtn" class="clear-x-btn" title="Clear">×</button>
+                        </div>
                     </div>
                     <div id="answerContainer" class="canvas-container hidden">
                         <h3>Correct Stroke Order</h3>
@@ -60,7 +63,6 @@
                 
                 <div class="controls-section">
                     <div class="canvas-controls">
-                        <button id="clearBtn" class="btn btn-secondary">Clear</button>
                         <button id="showAnswerBtn" class="btn btn-primary" title="Press SPACE to show answer">
                             Show Answer <span class="hotkey-hint">SPACE</span>
                         </button>
