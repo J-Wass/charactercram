@@ -59,162 +59,37 @@ body {
     font-weight: 500;
 }
 
-/* Level-specific option colors */
-.level-selector select option.level-novice {
-    background: linear-gradient(to right, #667eea var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
-}
-
-.level-selector select option.level-beginner {
-    background: linear-gradient(to right, #10b981 var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
-}
-
-.level-selector select option.level-intermediate {
-    background: linear-gradient(to right, #0891b2 var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
-}
-
-.level-selector select option.level-advanced {
-    background: linear-gradient(to right, #f59e0b var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
-}
-
-.level-selector select option.level-master {
-    background: linear-gradient(to right, #ef4444 var(--fill-percent, 0%), #f3f4f6 var(--fill-percent, 0%)) !important;
-}
-
+/* Generic level styling */
 .level-selector select option.no-score {
     background: #f3f4f6 !important;
 }
 
-/* Style the select itself based on current selection */
-.level-selector select.level-novice {
-    border-color: #8b9dc3;
-    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
+/* Style the select itself - colors will be set by JavaScript */
+.level-selector select {
     color: white;
+    transition: all 0.3s ease;
 }
 
-.level-selector select.level-beginner {
-    border-color: #52a085;
-    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
-    color: white;
+/* Generic site theming - colors will be set by JavaScript */
+.container .prompt-info {
+    transition: all 0.3s ease;
 }
 
-.level-selector select.level-intermediate {
-    border-color: #5a9bb8;
-    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
-    color: white;
+.container .btn-primary {
+    transition: all 0.3s ease;
 }
 
-.level-selector select.level-advanced {
-    border-color: #c08552;
-    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
-    color: white;
+.container .btn-primary:hover {
+    transform: translateY(-1px);
 }
 
-.level-selector select.level-master {
-    border-color: #c36e6e;
-    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
-    color: white;
+.progress-fill {
+    background: linear-gradient(90deg, #4a5568 0%, #2d3748 100%);
 }
 
-/* Level-specific site theming */
-.container.level-novice .prompt-info {
-    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
-}
-
-.container.level-beginner .prompt-info {
-    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
-}
-
-.container.level-intermediate .prompt-info {
-    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
-}
-
-.container.level-advanced .prompt-info {
-    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
-}
-
-.container.level-master .prompt-info {
-    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
-}
-
-.container.level-novice .btn-primary {
-    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
-}
-
-.container.level-beginner .btn-primary {
-    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
-}
-
-.container.level-intermediate .btn-primary {
-    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
-}
-
-.container.level-advanced .btn-primary {
-    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
-}
-
-.container.level-master .btn-primary {
-    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
-}
-
-.container.level-novice .btn-primary:hover {
-    box-shadow: 0 5px 15px rgba(139, 157, 195, 0.3);
-}
-
-.container.level-beginner .btn-primary:hover {
-    box-shadow: 0 5px 15px rgba(82, 160, 133, 0.3);
-}
-
-.container.level-intermediate .btn-primary:hover {
-    box-shadow: 0 5px 15px rgba(90, 155, 184, 0.3);
-}
-
-.container.level-advanced .btn-primary:hover {
-    box-shadow: 0 5px 15px rgba(192, 133, 82, 0.3);
-}
-
-.container.level-master .btn-primary:hover {
-    box-shadow: 0 5px 15px rgba(195, 110, 110, 0.3);
-}
-
-.container.level-novice .progress-fill {
-    background: linear-gradient(90deg, #8b9dc3 0%, #9fa8da 100%);
-}
-
-.container.level-beginner .progress-fill {
-    background: linear-gradient(90deg, #52a085 0%, #7cb387 100%);
-}
-
-.container.level-intermediate .progress-fill {
-    background: linear-gradient(90deg, #5a9bb8 0%, #52a085 100%);
-}
-
-.container.level-advanced .progress-fill {
-    background: linear-gradient(90deg, #c08552 0%, #d49a6a 100%);
-}
-
-.container.level-master .progress-fill {
-    background: linear-gradient(90deg, #c36e6e 0%, #b76565 100%);
-}
-
-/* Level-specific body backgrounds */
-body.level-novice {
-    background: linear-gradient(135deg, #8b9dc3 0%, #9fa8da 100%);
-}
-
-body.level-beginner {
-    background: linear-gradient(135deg, #52a085 0%, #7cb387 100%);
-}
-
-body.level-intermediate {
-    background: linear-gradient(135deg, #5a9bb8 0%, #52a085 100%);
-}
-
-body.level-advanced {
-    background: linear-gradient(135deg, #c08552 0%, #d49a6a 100%);
-}
-
-body.level-master {
-    background: linear-gradient(135deg, #c36e6e 0%, #b76565 100%);
+/* Body background - will be set by JavaScript */
+body {
+    transition: background 0.5s ease;
 }
 
 .game-area {
@@ -499,6 +374,98 @@ body.level-master {
 .toast.show {
     opacity: 1;
     transform: translateY(0);
+}
+
+/* Marathon Mode */
+.btn-marathon {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+    color: white;
+    margin-left: 10px;
+    position: relative;
+    overflow: hidden;
+    animation: marathonShimmer 3s ease-in-out infinite;
+    transition: all 0.3s ease;
+}
+
+.btn-marathon:hover {
+    background: linear-gradient(135deg, #f093fb 0%, #764ba2 50%, #667eea 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-marathon.marathon-active {
+    background: linear-gradient(135deg, #f093fb 0%, #764ba2 50%, #667eea 100%);
+    animation: marathonPulse 2s ease-in-out infinite;
+    box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4);
+}
+
+.btn-marathon.marathon-active:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+}
+
+@keyframes marathonShimmer {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+@keyframes marathonPulse {
+    0%, 100% { box-shadow: 0 4px 15px rgba(240, 147, 251, 0.4); }
+    50% { box-shadow: 0 6px 25px rgba(240, 147, 251, 0.6); }
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    font-size: 24px;
+    color: #2d3748;
+}
+
+.modal-content p {
+    margin-bottom: 20px;
+    font-size: 16px;
+    color: #4a5568;
+}
+
+#marathonSlider {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.modal-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.modal-buttons .btn {
+    padding: 10px 20px;
 }
 
 .stats-section {

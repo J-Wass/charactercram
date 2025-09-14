@@ -3,7 +3,9 @@
 class ChineseCharacterApp {
     constructor() {
         this.characters = [];
-        this.currentLevel = 'novice';
+        this.currentLevel = 'level-1';  // Default to first level
+        this.isMarathonMode = false;
+        this.marathonMax = 100;
         this.currentCharIndex = 0;
         this.currentChar = null;
         this.userProgress = this.loadProgress();
@@ -14,24 +16,75 @@ class ChineseCharacterApp {
         this.lastY = 0;
         this.hasBackground = false;
         
-        this.levelConfig = {
-            'novice': 10,
-            'beginner': 25,
-            'intermediate': 100,
-            'advanced': 1000,
-            'master': 5000
-        };
+        // Load saved settings
+        this.loadSettings();
+        
+        // Generate level config: 500 levels of 10 chars each
+        this.levelConfig = {};
+        for (let i = 1; i <= 500; i++) {
+            this.levelConfig[`level-${i}`] = {
+                start: (i - 1) * 10,
+                end: i * 10
+            };
+        }
         
         this.init();
     }
     
     async init() {
         await this.loadCharacters();
+        this.populateLevelDropdown();
+        this.restoreUIFromSettings();
         this.setupCanvas();
         this.setupEventListeners();
+        this.setupMarathonModal();
         this.updateSelectStyling();
         this.updateLevelDropdownMastery();
         this.startNewRound();
+    }
+    
+    restoreUIFromSettings() {
+        const levelSelect = document.getElementById('levelSelect');
+        const marathonBtn = document.getElementById('marathonBtn');
+        
+        if (this.isMarathonMode) {
+            // Hide level selector and show marathon info
+            levelSelect.style.display = 'none';
+            this.currentLevel = 'marathon';
+            marathonBtn.textContent = `Exit Marathon (${this.marathonMax} chars)`;
+            marathonBtn.classList.add('marathon-active');
+            
+            // Set marathon slider value
+            const marathonSlider = document.getElementById('marathonSlider');
+            const marathonValue = document.getElementById('marathonValue');
+            if (marathonSlider && marathonValue) {
+                marathonSlider.value = this.marathonMax;
+                marathonValue.textContent = this.marathonMax;
+            }
+        } else {
+            // Show level selector and reset marathon button
+            levelSelect.style.display = 'block';
+            levelSelect.value = this.currentLevel;
+            levelSelect.disabled = false;
+            levelSelect.style.opacity = '1';
+            marathonBtn.textContent = 'Marathon Mode';
+            marathonBtn.classList.remove('marathon-active');
+        }
+    }
+    
+    populateLevelDropdown() {
+        const levelSelect = document.getElementById('levelSelect');
+        levelSelect.innerHTML = '';
+        
+        // Add 500 levels
+        for (let i = 1; i <= 500; i++) {
+            const option = document.createElement('option');
+            option.value = `level-${i}`;
+            const start = (i - 1) * 10 + 1;
+            const end = i * 10;
+            option.textContent = `Level ${i} (${start}-${end})`;
+            levelSelect.appendChild(option);
+        }
     }
     
     async loadCharacters() {
@@ -199,10 +252,71 @@ class ChineseCharacterApp {
         this.isDrawing = false;
     }
     
+    setupMarathonModal() {
+        const marathonBtn = document.getElementById('marathonBtn');
+        const marathonModal = document.getElementById('marathonModal');
+        const marathonSlider = document.getElementById('marathonSlider');
+        const marathonValue = document.getElementById('marathonValue');
+        const startMarathon = document.getElementById('startMarathon');
+        const cancelMarathon = document.getElementById('cancelMarathon');
+        
+        marathonBtn.addEventListener('click', () => {
+            if (this.isMarathonMode) {
+                // Exit marathon mode
+                this.isMarathonMode = false;
+                this.currentLevel = 'level-1'; // Return to default level
+                this.saveSettings();
+                this.restoreUIFromSettings();
+                this.updateSelectStyling();
+                this.updateLevelDropdownMastery();
+                this.startNewRound();
+            } else {
+                // Enter marathon mode
+                marathonModal.classList.remove('hidden');
+            }
+        });
+        
+        marathonSlider.addEventListener('input', (e) => {
+            marathonValue.textContent = e.target.value;
+        });
+        
+        startMarathon.addEventListener('click', () => {
+            this.isMarathonMode = true;
+            this.marathonMax = parseInt(marathonSlider.value);
+            this.currentLevel = 'marathon';
+            marathonModal.classList.add('hidden');
+            
+            // Clear marathon progress to restart fresh
+            this.clearMarathonProgress();
+            
+            this.saveSettings(); // Save marathon mode settings
+            
+            // Update UI for marathon mode
+            this.restoreUIFromSettings();
+            this.updateSelectStyling();
+            this.startNewRound();
+        });
+        
+        cancelMarathon.addEventListener('click', () => {
+            marathonModal.classList.add('hidden');
+        });
+        
+        // Click outside modal to close
+        marathonModal.addEventListener('click', (e) => {
+            if (e.target === marathonModal) {
+                marathonModal.classList.add('hidden');
+            }
+        });
+    }
+    
     setupEventListeners() {
         // Level selector
         document.getElementById('levelSelect').addEventListener('change', (e) => {
+            this.isMarathonMode = false;
             this.currentLevel = e.target.value;
+            document.getElementById('levelSelect').disabled = false;
+            document.getElementById('levelSelect').style.opacity = '1';
+            this.saveSettings(); // Save the new level selection
             this.updateSelectStyling();
             this.updateLevelDropdownMastery();
             this.startNewRound();
@@ -287,14 +401,23 @@ class ChineseCharacterApp {
     }
     
     getNextCharacter() {
-        const maxChars = this.levelConfig[this.currentLevel];
-        const levelChars = this.characters.slice(0, Math.min(maxChars, this.characters.length));
+        let levelChars;
+        
+        if (this.isMarathonMode) {
+            // In marathon mode, use characters from 0 to marathonMax
+            levelChars = this.characters.slice(0, Math.min(this.marathonMax, this.characters.length));
+        } else {
+            // Regular level mode
+            const levelInfo = this.levelConfig[this.currentLevel];
+            levelChars = this.characters.slice(levelInfo.start, Math.min(levelInfo.end, this.characters.length));
+        }
         
         if (levelChars.length === 0) return null;
         
         // Use spaced repetition algorithm
         const weights = levelChars.map((char, index) => {
-            const key = `${this.currentLevel}_${index}`;
+            const actualIndex = this.isMarathonMode ? index : index;
+            const key = this.isMarathonMode ? `marathon_${actualIndex}` : `${this.currentLevel}_${index}`;
             const progress = this.userProgress[key] || { difficulty: 3, lastSeen: 0, count: 0 };
             
             // Calculate weight based on difficulty and time since last seen
@@ -369,6 +492,14 @@ class ChineseCharacterApp {
         this.updateMasteryLevel();
         this.updateAverageScore();
         this.updateLevelDropdownMastery();
+
+        // Force scroll to the top so we can see the question
+        setTimeout(() => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        }, 100);
     }
     
     showAnswer() {
@@ -405,7 +536,7 @@ class ChineseCharacterApp {
     recordDifficulty(difficulty) {
         if (!this.currentChar) return;
         
-        const key = `${this.currentLevel}_${this.currentCharIndex}`;
+        const key = this.isMarathonMode ? `marathon_${this.currentCharIndex}` : `${this.currentLevel}_${this.currentCharIndex}`;
         
         if (!this.userProgress[key]) {
             this.userProgress[key] = {
@@ -491,11 +622,24 @@ class ChineseCharacterApp {
     }
     
     updateMasteryLevel() {
-        const maxChars = Math.min(this.levelConfig[this.currentLevel], this.characters.length);
+        let maxChars, startIdx;
+        
+        if (this.isMarathonMode) {
+            maxChars = Math.min(this.marathonMax, this.characters.length);
+            startIdx = 0;
+        } else if (this.levelConfig[this.currentLevel]) {
+            const levelInfo = this.levelConfig[this.currentLevel];
+            maxChars = levelInfo.end - levelInfo.start;
+            startIdx = levelInfo.start;
+        } else {
+            return; // Invalid level
+        }
+        
         let masteredCount = 0;
         
         for (let i = 0; i < maxChars; i++) {
-            const key = `${this.currentLevel}_${i}`;
+            const actualIdx = this.isMarathonMode ? i : i;
+            const key = this.isMarathonMode ? `marathon_${actualIdx}` : `${this.currentLevel}_${i}`;
             const progress = this.userProgress[key];
             
             // Consider a character mastered if difficulty >= 4.0 (Easy/Very Easy) and seen at least 2 times
@@ -509,32 +653,63 @@ class ChineseCharacterApp {
     }
     
     updateAverageScore() {
-        const maxChars = Math.min(this.levelConfig[this.currentLevel], this.characters.length);
+        let maxChars, startIdx;
+        
+        if (this.isMarathonMode) {
+            maxChars = Math.min(this.marathonMax, this.characters.length);
+            startIdx = 0;
+        } else if (this.levelConfig[this.currentLevel]) {
+            const levelInfo = this.levelConfig[this.currentLevel];
+            maxChars = levelInfo.end - levelInfo.start;
+            startIdx = levelInfo.start;
+        } else {
+            return; // Invalid level
+        }
+        
         let totalScore = 0;
         let attemptedCount = 0;
         
         for (let i = 0; i < maxChars; i++) {
-            const key = `${this.currentLevel}_${i}`;
+            const actualIdx = this.isMarathonMode ? i : i;
+            const key = this.isMarathonMode ? `marathon_${actualIdx}` : `${this.currentLevel}_${i}`;
             const progress = this.userProgress[key];
             
             if (progress && progress.count > 0) {
-                // Convert difficulty to score (1=Very Hard gets score 5, 5=Very Easy gets score 1)
-                const score = 6 - progress.difficulty;
-                totalScore += score;
+                // For marathon mode, calculate average of all individual difficulty scores
+                if (this.isMarathonMode && progress.history && progress.history.length > 0) {
+                    // Average all individual attempts (1,2,3,4,5)
+                    const individualAvg = progress.history.reduce((sum, score) => sum + score, 0) / progress.history.length;
+                    totalScore += individualAvg;
+                } else {
+                    // Regular mode: use current difficulty rating
+                    totalScore += progress.difficulty;
+                }
                 attemptedCount++;
             }
         }
         
         if (attemptedCount > 0) {
             const avgScore = totalScore / attemptedCount;
-            document.getElementById('avgScore').textContent = `Avg Score: ${avgScore.toFixed(1)}/5`;
+            if (this.isMarathonMode) {
+                // Show number of characters actually seen, not total possible
+                document.getElementById('avgScore').textContent = `Avg: ${avgScore.toFixed(1)}/5 (${attemptedCount} seen)`;
+            } else {
+                document.getElementById('avgScore').textContent = `Avg Score: ${avgScore.toFixed(1)}/5`;
+            }
         } else {
-            document.getElementById('avgScore').textContent = 'Avg Score: -';
+            if (this.isMarathonMode) {
+                document.getElementById('avgScore').textContent = `Avg: - (0 seen)`;
+            } else {
+                document.getElementById('avgScore').textContent = 'Avg Score: -';
+            }
         }
     }
     
     getAverageScoreForLevel(level) {
-        const maxChars = Math.min(this.levelConfig[level], this.characters.length);
+        if (!this.levelConfig[level]) return 0;
+        
+        const levelInfo = this.levelConfig[level];
+        const maxChars = levelInfo.end - levelInfo.start;
         let totalScore = 0;
         let attemptedCount = 0;
         
@@ -543,9 +718,8 @@ class ChineseCharacterApp {
             const progress = this.userProgress[key];
             
             if (progress && progress.count > 0) {
-                // Convert difficulty to score (1=Very Hard gets score 5, 5=Very Easy gets score 1)
-                const score = 6 - progress.difficulty;
-                totalScore += score;
+                // Use difficulty directly as score (1=Very Hard to 5=Very Easy)
+                totalScore += progress.difficulty;
                 attemptedCount++;
             }
         }
@@ -553,72 +727,126 @@ class ChineseCharacterApp {
         return attemptedCount > 0 ? totalScore / attemptedCount : 0;
     }
     
+    getLevelColors(level) {
+        if (this.isMarathonMode) {
+            // Marathon mode: rainbow gradient
+            return {
+                primary: '#667eea',
+                secondary: '#764ba2',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%)'
+            };
+        }
+        
+        // Extract level number for color calculation
+        const levelNum = parseInt(level.replace('level-', ''));
+        
+        // Blend from blue (1) to purple (250) to red (500)
+        let hue;
+        if (levelNum <= 250) {
+            // Blue to purple: 240° to 280°
+            hue = 240 + (levelNum / 250) * 40;
+        } else {
+            // Purple to red: 280° to 0°
+            hue = 280 + ((levelNum - 250) / 250) * 80;
+            if (hue >= 360) hue -= 360;
+        }
+        
+        const saturation = 60;
+        const lightness = 55;
+        
+        return {
+            primary: `hsl(${hue}, ${saturation}%, ${lightness}%)`,
+            secondary: `hsl(${hue}, ${saturation}%, ${lightness - 10}%)`,
+            background: `linear-gradient(135deg, hsl(${hue}, ${saturation - 20}%, ${lightness + 25}%) 0%, hsl(${hue}, ${saturation - 10}%, ${lightness + 15}%) 100%)`
+        };
+    }
+    
     updateSelectStyling() {
         const levelSelect = document.getElementById('levelSelect');
         const container = document.querySelector('.container');
         const body = document.body;
+        const promptInfo = document.querySelector('.prompt-info');
+        const buttons = document.querySelectorAll('.btn-primary');
         
-        // Remove existing level classes from select
-        levelSelect.className = levelSelect.className.replace(/level-\w+/g, '');
-        // Add current level class to select
-        levelSelect.classList.add(`level-${this.currentLevel}`);
+        const colors = this.getLevelColors(this.currentLevel);
         
-        // Remove existing level classes from container
-        container.className = container.className.replace(/level-\w+/g, '');
-        // Add current level class to container for site-wide theming
-        container.classList.add(`level-${this.currentLevel}`);
+        // Update level select styling
+        levelSelect.style.background = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
+        levelSelect.style.borderColor = colors.primary;
         
-        // Remove existing level classes from body
-        body.className = body.className.replace(/level-\w+/g, '');
-        // Add current level class to body for background theming
-        body.classList.add(`level-${this.currentLevel}`);
+        // Update body background
+        body.style.background = colors.background;
+        
+        // Update prompt info background
+        if (promptInfo) {
+            promptInfo.style.background = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
+        }
+        
+        // Update primary buttons
+        buttons.forEach(button => {
+            button.style.background = `linear-gradient(135deg, ${colors.primary} 0%, ${colors.secondary} 100%)`;
+            button.onmouseenter = () => {
+                button.style.boxShadow = `0 5px 15px ${colors.primary}40`;
+            };
+            button.onmouseleave = () => {
+                button.style.boxShadow = 'none';
+            };
+        });
+        
+        // Update marathon button if in marathon mode
+        const marathonBtn = document.getElementById('marathonBtn');
+        if (this.isMarathonMode && marathonBtn) {
+            marathonBtn.style.background = colors.background;
+            marathonBtn.style.borderColor = colors.primary;
+        }
+    }
+    
+    scoreToGrade(score) {
+        if (score >= 4.7) return 'A+';
+        if (score >= 4.3) return 'A';
+        if (score >= 4.0) return 'A-';
+        if (score >= 3.7) return 'B+';
+        if (score >= 3.3) return 'B';
+        if (score >= 3.0) return 'B-';
+        if (score >= 2.7) return 'C+';
+        if (score >= 2.3) return 'C';
+        if (score >= 2.0) return 'C-';
+        if (score >= 1.7) return 'D+';
+        if (score >= 1.3) return 'D';
+        if (score >= 1.0) return 'D-';
+        return 'F';
     }
     
     updateLevelDropdownMastery() {
         const levelSelect = document.getElementById('levelSelect');
-        const levels = ['novice', 'beginner', 'intermediate', 'advanced', 'master'];
-        const baseTexts = {
-            'novice': 'Novice (10 chars)',
-            'beginner': 'Beginner (25 chars)', 
-            'intermediate': 'Intermediate (100 chars)',
-            'advanced': 'Advanced (1000 chars)',
-            'master': 'Master (5000 chars)'
-        };
         
-        const levelColors = {
-            'novice': '#8b9dc3', // muted blue/purple
-            'beginner': '#52a085', // muted green 
-            'intermediate': '#5a9bb8', // muted blue/green
-            'advanced': '#c08552', // muted orange
-            'master': '#c36e6e' // muted red
-        };
+        // Skip update if in marathon mode (dropdown is hidden)
+        if (this.isMarathonMode) return;
         
-        levels.forEach((level, index) => {
-            const avgScore = this.getAverageScoreForLevel(level);
-            const option = levelSelect.options[index];
-            const color = levelColors[level];
+        // Update scores for each option
+        for (let i = 0; i < levelSelect.options.length; i++) {
+            const option = levelSelect.options[i];
+            const levelValue = option.value;
+            const avgScore = this.getAverageScoreForLevel(levelValue);
             
-            // Remove existing classes
-            option.className = '';
+            const levelNum = i + 1;
+            const start = i * 10 + 1;
+            const end = (i + 1) * 10;
             
             if (avgScore > 0) {
-                const scoreText = avgScore.toFixed(1);
-                option.textContent = `${baseTexts[level]} - ${scoreText}/5`;
+                const grade = this.scoreToGrade(avgScore);
+                option.textContent = `Level ${levelNum} (${grade})`;
                 
-                // Add class for level and score
+                // Color based on score
                 const fillPercent = Math.round((avgScore / 5) * 100);
-                option.className = `level-${level} fill-${Math.min(100, Math.max(0, fillPercent))}`;
-                
-                // Try both approaches - class and inline style
-                option.style.setProperty('--fill-color', color);
-                option.style.setProperty('--fill-percent', `${fillPercent}%`);
+                const hue = fillPercent * 1.2; // 0-120 (red to green)
+                const color = `hsl(${hue}, 50%, 50%)`;
                 option.style.background = `linear-gradient(to right, ${color} ${fillPercent}%, #f3f4f6 ${fillPercent}%)`;
             } else {
-                option.textContent = baseTexts[level];
-                option.className = `level-${level} no-score`;
+                option.textContent = `Level ${levelNum} (N/A)`;
                 option.style.background = '#f3f4f6';
             }
-        });
+        }
     }
     
     saveProgress() {
@@ -628,6 +856,42 @@ class ChineseCharacterApp {
     loadProgress() {
         const saved = localStorage.getItem('chineseCharProgress');
         return saved ? JSON.parse(saved) : {};
+    }
+    
+    saveSettings() {
+        const settings = {
+            currentLevel: this.currentLevel,
+            isMarathonMode: this.isMarathonMode,
+            marathonMax: this.marathonMax
+        };
+        localStorage.setItem('chineseCharSettings', JSON.stringify(settings));
+    }
+    
+    loadSettings() {
+        const saved = localStorage.getItem('chineseCharSettings');
+        if (saved) {
+            const settings = JSON.parse(saved);
+            this.currentLevel = settings.currentLevel || 'level-1';
+            this.isMarathonMode = settings.isMarathonMode || false;
+            this.marathonMax = settings.marathonMax || 100;
+        }
+    }
+    
+    clearMarathonProgress() {
+        // Remove all marathon progress entries
+        const keysToDelete = [];
+        for (const key in this.userProgress) {
+            if (key.startsWith('marathon_')) {
+                keysToDelete.push(key);
+            }
+        }
+        
+        keysToDelete.forEach(key => {
+            delete this.userProgress[key];
+        });
+        
+        // Save the updated progress
+        this.saveProgress();
     }
 }
 
