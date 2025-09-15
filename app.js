@@ -15,7 +15,9 @@ class ChineseCharacterApp {
         this.lastX = 0;
         this.lastY = 0;
         this.hasBackground = false;
-        
+        this.preloadedGifs = new Set();
+        this.isPreloading = false;
+
         // Load saved settings
         this.loadSettings();
         
@@ -41,6 +43,9 @@ class ChineseCharacterApp {
         this.updateSelectStyling();
         this.updateLevelDropdownMastery();
         this.startNewRound();
+
+        // Start preloading current and next level
+        this.preloadCurrentAndNextLevel();
     }
     
     restoreUIFromSettings() {
@@ -396,6 +401,9 @@ class ChineseCharacterApp {
             this.updateSelectStyling();
             this.updateLevelDropdownMastery();
             this.startNewRound();
+
+            // Preload new level's GIFs
+            this.preloadCurrentAndNextLevel();
         });
         
         // Clear button
@@ -983,13 +991,103 @@ class ChineseCharacterApp {
                 keysToDelete.push(key);
             }
         }
-        
+
         keysToDelete.forEach(key => {
             delete this.userProgress[key];
         });
-        
+
         // Save the updated progress
         this.saveProgress();
+    }
+
+    preloadCurrentAndNextLevel() {
+        if (this.isPreloading) return;
+        this.isPreloading = true;
+
+        const gifsToPreload = new Set();
+
+        // Get characters for current level
+        const currentLevelChars = this.getLevelCharacters(this.currentLevel);
+        currentLevelChars.forEach(char => {
+            gifsToPreload.add(`img/${char.character}.gif`);
+        });
+
+        // Get characters for next level (if not in review mode)
+        if (!this.isReviewMode) {
+            const currentLevelNum = parseInt(this.currentLevel.replace('level-', ''));
+            const nextLevel = `level-${currentLevelNum + 1}`;
+
+            if (this.levelConfig[nextLevel]) {
+                const nextLevelChars = this.getLevelCharacters(nextLevel);
+                nextLevelChars.forEach(char => {
+                    gifsToPreload.add(`img/${char.character}.gif`);
+                });
+            }
+        }
+
+        // Convert to array and filter out already preloaded
+        const newGifs = Array.from(gifsToPreload).filter(gif => !this.preloadedGifs.has(gif));
+
+        if (newGifs.length > 0) {
+            this.cacheGifs(newGifs).then(() => {
+                newGifs.forEach(gif => this.preloadedGifs.add(gif));
+                console.log(`Preloaded ${newGifs.length} GIFs for offline use`);
+                this.isPreloading = false;
+            }).catch(err => {
+                console.warn('Failed to preload some GIFs:', err);
+                this.isPreloading = false;
+            });
+        } else {
+            this.isPreloading = false;
+        }
+    }
+
+    getLevelCharacters(level) {
+        if (level === 'review') {
+            return this.characters.slice(0, Math.min(this.reviewMax, this.characters.length));
+        }
+
+        const levelInfo = this.levelConfig[level];
+        if (!levelInfo) return [];
+
+        return this.characters.slice(levelInfo.start, Math.min(levelInfo.end, this.characters.length));
+    }
+
+    async cacheGifs(gifUrls) {
+        if (!navigator.serviceWorker || !navigator.serviceWorker.controller) {
+            // Fallback: preload using Image objects
+            return this.preloadWithImages(gifUrls);
+        }
+
+        return new Promise((resolve, reject) => {
+            const messageChannel = new MessageChannel();
+
+            messageChannel.port1.onmessage = (event) => {
+                if (event.data.success) {
+                    resolve();
+                } else {
+                    reject(new Error(event.data.error));
+                }
+            };
+
+            navigator.serviceWorker.controller.postMessage({
+                type: 'CACHE_GIFS',
+                gifs: gifUrls
+            }, [messageChannel.port2]);
+        });
+    }
+
+    preloadWithImages(gifUrls) {
+        return Promise.all(
+            gifUrls.map(url => {
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => resolve();
+                    img.onerror = () => resolve(); // Don't fail if one image fails
+                    img.src = url;
+                });
+            })
+        );
     }
 }
 
