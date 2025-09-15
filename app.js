@@ -51,7 +51,7 @@ class ChineseCharacterApp {
             // Hide level selector and show review info
             levelSelect.style.display = 'none';
             this.currentLevel = 'review';
-            reviewBtn.textContent = `Exit Review (${this.reviewMax} chars)`;
+            reviewBtn.textContent = `Exit Review Mode`;
             reviewBtn.classList.add('review-active');
             
             // Set review input value
@@ -334,7 +334,57 @@ class ChineseCharacterApp {
             }
         });
     }
-    
+
+    smoothScrollTo(targetPosition) {
+        // Try modern scroll API first
+        if (window.scrollTo && 'behavior' in document.documentElement.style) {
+            try {
+                window.scrollTo({
+                    top: targetPosition,
+                    behavior: 'smooth'
+                });
+                return;
+            } catch (e) {
+                // Fall through to manual animation
+            }
+        }
+
+        // Manual smooth scroll for browsers that don't support it (like iOS Chrome)
+        const startPosition = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+        const distance = targetPosition - startPosition;
+        const duration = 300; // milliseconds
+        let start = null;
+
+        function animation(currentTime) {
+            if (start === null) start = currentTime;
+            const timeElapsed = currentTime - start;
+            const run = easeInOutQuad(timeElapsed, startPosition, distance, duration);
+
+            // Set scroll position using multiple methods for cross-browser compatibility
+            window.scrollTo(0, run);
+            if (document.documentElement.scrollTop !== undefined) {
+                document.documentElement.scrollTop = run;
+            }
+            if (document.body.scrollTop !== undefined) {
+                document.body.scrollTop = run;
+            }
+
+            if (timeElapsed < duration) {
+                requestAnimationFrame(animation);
+            }
+        }
+
+        // Easing function for smooth animation
+        function easeInOutQuad(t, b, c, d) {
+            t /= d / 2;
+            if (t < 1) return c / 2 * t * t + b;
+            t--;
+            return -c / 2 * (t * (t - 2) - 1) + b;
+        }
+
+        requestAnimationFrame(animation);
+    }
+
     setupEventListeners() {
         // Level selector
         document.getElementById('levelSelect').addEventListener('change', (e) => {
@@ -526,10 +576,7 @@ class ChineseCharacterApp {
 
         // Force scroll to the top so we can see the question
         setTimeout(() => {
-            window.scrollTo({
-                top: 0,
-                behavior: 'smooth'
-            });
+            this.smoothScrollTo(0);
         }, 100);
     }
     
@@ -556,10 +603,11 @@ class ChineseCharacterApp {
         
         // Scroll to bottom to show difficulty buttons
         setTimeout(() => {
-            window.scrollTo({
-                top: document.body.scrollHeight,
-                behavior: 'smooth'
-            });
+            const maxHeight = Math.max(
+                document.body.scrollHeight,
+                document.documentElement.scrollHeight
+            );
+            this.smoothScrollTo(maxHeight);
         }, 100);
     }
     
