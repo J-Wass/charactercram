@@ -2,7 +2,7 @@
   "name": "Character Cram - Chinese Learning",
   "short_name": "CharacterCram",
   "description": "Interactive Chinese character writing practice with spaced repetition",
-  "start_url": "/",
+  "start_url": "./",
   "display": "standalone",
   "background_color": "#8b9dc3",
   "theme_color": "#667eea",
@@ -21,6 +21,6 @@
   ],
   "categories": ["education", "productivity", "lifestyle"],
   "lang": "en",
-  "scope": "/",
+  "scope": "./",
   "prefer_related_applications": false
 }

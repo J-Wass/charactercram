@@ -4,11 +4,12 @@ const STATIC_CACHE = 'static-v1';
 
 // Core app files that should always be cached
 const CORE_FILES = [
-    '/',
-    '/index.html',
-    '/app.js',
-    '/chars_data.js',
-    '/style.css'
+    './',
+    './index.html',
+    './app.js',
+    './chars_data.js',
+    './style.css',
+    './algorithms.js'
 ];
 
 // Install event - cache core files
@@ -53,7 +54,7 @@ self.addEventListener('fetch', (event) => {
     const { request } = event;
 
     // Handle GIF files (stroke order images)
-    if (request.url.includes('/img/') && request.url.endsWith('.gif')) {
+    if (request.url.includes('img/') && request.url.endsWith('.gif')) {
         event.respondWith(
             caches.open(CACHE_NAME)
                 .then(cache => {

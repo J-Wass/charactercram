@@ -24,7 +24,8 @@
       "Bash(tasklist)",
       "Bash(taskkill:*)",
       "Bash(node:*)",
-      "Bash(sed:*)"
+      "Bash(sed:*)",
+      "Bash(del server.js)"
     ],
     "deny": [],
     "ask": []

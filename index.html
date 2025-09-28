@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="style.css">
 
     <!-- PWA Manifest -->
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="manifest.json">
 
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#667eea">
@@ -16,7 +16,7 @@
     <meta name="apple-mobile-web-app-title" content="Character Cram">
 
     <!-- Preconnect for faster loading -->
-    <link rel="preconnect" href="/img/" crossorigin>
+    <link rel="preconnect" href="img/" crossorigin>
 </head>
 <body>
     <div class="container">
@@ -86,6 +86,11 @@
         <span class="stats-icon">📊</span>
     </button>
 
+    <!-- Debug Button -->
+    <button id="debugBtn" class="debug-btn" title="Debug Info">
+        🐛
+    </button>
+
     <!-- Stats Modal -->
     <div id="statsModal" class="stats-modal">
         <div class="stats-modal-content">
@@ -119,6 +124,34 @@
         </div>
     </div>
 
+    <!-- Debug Modal -->
+    <div id="debugModal" class="debug-modal">
+        <div class="debug-modal-content">
+            <button class="debug-close-btn" id="debugCloseBtn">×</button>
+            <h2 class="debug-modal-title">🐛 Debug Info</h2>
+
+            <div class="debug-section">
+                <h3>Session Info</h3>
+                <div id="debugSessionInfo"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Current Card</h3>
+                <div id="debugCurrentCard"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Upcoming Cards (Next ~20)</h3>
+                <div id="debugUpcomingCards"></div>
+            </div>
+
+            <div class="debug-section">
+                <h3>Card Categories</h3>
+                <div id="debugCardCategories"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="chars_data.js"></script>
     <script src="algorithms.js"></script>
     <script src="app.js"></script>
@@ -127,7 +160,7 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
+                navigator.serviceWorker.register('sw.js')
                     .then((registration) => {
                         console.log('Service Worker registered successfully:', registration.scope);
 

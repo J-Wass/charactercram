@@ -1,7 +1,7 @@
 // Simplified Chinese Character Practice App with Anki-like Spaced Repetition
 
 class ChineseCharacterApp {
-    constructor(algorithmType = 'improved') {
+    constructor(algorithmType = 'mastery') {
         this.characters = [];
         this.currentChar = null;
         this.userProgress = this.loadProgress();
@@ -64,6 +64,7 @@ class ChineseCharacterApp {
         this.setupCanvas();
         this.setupEventListeners();
         this.setupStatsModal();
+        this.setupDebugModal();
         this.updateStats();
         this.startNewRound();
     }
@@ -397,6 +398,12 @@ class ChineseCharacterApp {
             this.algorithmState.recentFailedCards.delete(index);
         }
 
+        // Calculate target review position for MasteryBased algorithm
+        let targetReviewPosition;
+        if (this.algorithm.calculateTargetReviewPosition) {
+            targetReviewPosition = this.algorithm.calculateTargetReviewPosition(difficulty);
+        }
+
         if (!this.userProgress[index]) {
             // First time seeing this card
             const initialInterval = this.algorithm.calculateInitialInterval(difficulty);
@@ -410,7 +417,8 @@ class ChineseCharacterApp {
                 lastSeen: now,
                 nextReview: now + initialInterval,
                 interval: initialInterval,
-                history: [difficulty]
+                history: [difficulty],
+                targetReviewPosition: targetReviewPosition // Add target position
             };
         } else {
             // Updating existing card
@@ -438,6 +446,11 @@ class ChineseCharacterApp {
                 progress.successRate
             );
             progress.nextReview = now + progress.interval;
+
+            // Update target review position if using MasteryBased
+            if (targetReviewPosition !== undefined) {
+                progress.targetReviewPosition = targetReviewPosition;
+            }
         }
 
         // Update stats
@@ -826,6 +839,217 @@ class ChineseCharacterApp {
         }
 
         return count;
+    }
+
+    // Debug methods
+    setupDebugModal() {
+        const debugBtn = document.getElementById('debugBtn');
+        const modal = document.getElementById('debugModal');
+        const closeBtn = document.getElementById('debugCloseBtn');
+
+        // Open modal
+        debugBtn.addEventListener('click', () => {
+            this.updateDebugInfo();
+            modal.classList.add('open');
+        });
+
+        // Close modal
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('open');
+        });
+
+        // Close on background click
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('open');
+            }
+        });
+    }
+
+    updateDebugInfo() {
+        // Session info
+        const sessionInfo = document.getElementById('debugSessionInfo');
+        sessionInfo.innerHTML = `
+            <div class="debug-info-row">
+                <span>Algorithm:</span> <strong>${this.algorithm.name}</strong>
+            </div>
+            <div class="debug-info-row">
+                <span>Cards Seen (Session):</span> <strong>${this.algorithm.sessionCardsSeen || 0}</strong>
+            </div>
+            <div class="debug-info-row">
+                <span>Correct Streak:</span> <strong>${this.algorithmState.sessionCorrectStreak}</strong>
+            </div>
+            <div class="debug-info-row">
+                <span>Failed Cards Active:</span> <strong>${this.algorithmState.recentFailedCards.size}</strong>
+            </div>
+            <div class="debug-info-row">
+                <span>Total Progress Saved:</span> <strong>${Object.keys(this.userProgress).length} cards</strong>
+            </div>
+        `;
+
+        // Current card info
+        const currentCard = document.getElementById('debugCurrentCard');
+        if (this.currentChar) {
+            const progress = this.userProgress[this.currentCharIndex];
+            currentCard.innerHTML = `
+                <div class="debug-card-info">
+                    <span class="debug-char">${this.currentChar.character}</span>
+                    <span>${this.currentChar.pinyin}</span>
+                    <span class="debug-small">${this.currentChar.definition}</span>
+                </div>
+                ${progress ? `
+                    <div class="debug-info-row">
+                        <span>Reviews:</span> <strong>${progress.reviewCount}</strong>
+                    </div>
+                    <div class="debug-info-row">
+                        <span>Success Rate:</span> <strong>${Math.round(progress.successRate * 100)}%</strong>
+                    </div>
+                    <div class="debug-info-row">
+                        <span>Target Position:</span> <strong>${progress.targetReviewPosition || 'N/A'}</strong>
+                    </div>
+                ` : '<div class="debug-info-row">New Card (never seen)</div>'}
+            `;
+        } else {
+            currentCard.innerHTML = '<div>No current card</div>';
+        }
+
+        // Get upcoming cards
+        this.showUpcomingCards();
+
+        // Show card categories
+        this.showCardCategories();
+    }
+
+    showUpcomingCards() {
+        const upcomingDiv = document.getElementById('debugUpcomingCards');
+        const upcoming = [];
+
+        // Temporarily store current state
+        const originalSessionCards = this.algorithm.sessionCardsSeen || 0;
+
+        // Simulate next 20 cards
+        for (let i = 0; i < 20; i++) {
+            const result = this.algorithm.getNextCard(this.characters, this.userProgress, this.algorithmState);
+            if (result) {
+                const progress = this.userProgress[result.index];
+                upcoming.push({
+                    char: result.char.character,
+                    pinyin: result.char.pinyin,
+                    index: result.index,
+                    reviews: progress ? progress.reviewCount : 0,
+                    successRate: progress ? Math.round(progress.successRate * 100) : 0,
+                    targetPos: progress ? progress.targetReviewPosition : null,
+                    cardsUntilDue: progress && progress.targetReviewPosition ?
+                        progress.targetReviewPosition - (this.algorithm.sessionCardsSeen || 0) : null
+                });
+            }
+        }
+
+        // Restore state
+        if (this.algorithm.sessionCardsSeen !== undefined) {
+            this.algorithm.sessionCardsSeen = originalSessionCards;
+        }
+
+        upcomingDiv.innerHTML = upcoming.map((card, idx) => `
+            <div class="debug-upcoming-card">
+                <span class="debug-upcoming-number">${idx + 1}.</span>
+                <span class="debug-char-small">${card.char}</span>
+                <span class="debug-pinyin">${card.pinyin}</span>
+                <span class="debug-stats">
+                    ${card.reviews > 0 ? `Tried ${card.reviews} times | ${card.successRate}% success` : 'NEW'}
+                    ${card.cardsUntilDue !== null ?
+                        (card.cardsUntilDue <= 0 ?
+                            `<span class="debug-due">DUE</span>` :
+                            `<span class="debug-in">in ${card.cardsUntilDue}</span>`)
+                        : ''}
+                </span>
+            </div>
+        `).join('');
+    }
+
+    showCardCategories() {
+        const categoriesDiv = document.getElementById('debugCardCategories');
+
+        // Categorize all cards
+        const categories = {
+            dueNow: 0,
+            dueSoon: 0,
+            dueLater: 0,
+            new: 0,
+            failed: this.algorithmState.recentFailedCards.size,
+            mastered: 0,
+            familiar: 0,
+            learning: 0
+        };
+
+        const sessionCards = this.algorithm.sessionCardsSeen || 0;
+
+        for (let i = 0; i < this.characters.length; i++) {
+            const progress = this.userProgress[i];
+
+            if (!progress) {
+                categories.new++;
+            } else {
+                // Check mastery level
+                const { reviewCount, successRate } = progress;
+                if ((reviewCount >= 5 && successRate >= 0.8) || (reviewCount >= 3 && successRate >= 0.9)) {
+                    categories.mastered++;
+                } else if (reviewCount >= 3 && successRate >= 0.6) {
+                    categories.familiar++;
+                } else if (reviewCount > 0) {
+                    categories.learning++;
+                }
+
+                // Check due status
+                if (progress.targetReviewPosition !== undefined) {
+                    const cardsUntilDue = progress.targetReviewPosition - sessionCards;
+                    if (cardsUntilDue <= 0) {
+                        categories.dueNow++;
+                    } else if (cardsUntilDue <= 5) {
+                        categories.dueSoon++;
+                    } else {
+                        categories.dueLater++;
+                    }
+                }
+            }
+        }
+
+        categoriesDiv.innerHTML = `
+            <div class="debug-category-grid">
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.failed}</div>
+                    <div class="debug-category-label">Failed (Priority)</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.dueNow}</div>
+                    <div class="debug-category-label">Due Now</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.dueSoon}</div>
+                    <div class="debug-category-label">Due Soon (≤5)</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.dueLater}</div>
+                    <div class="debug-category-label">Due Later</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.new}</div>
+                    <div class="debug-category-label">New Cards</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.learning}</div>
+                    <div class="debug-category-label">Learning</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.familiar}</div>
+                    <div class="debug-category-label">Familiar</div>
+                </div>
+                <div class="debug-category">
+                    <div class="debug-category-count">${categories.mastered}</div>
+                    <div class="debug-category-label">Mastered</div>
+                </div>
+            </div>
+        `;
     }
 
 }

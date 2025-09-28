@@ -307,15 +307,185 @@ class AggressiveAlgorithm extends BaseAlgorithm {
     }
 }
 
+// Mastery-Based Algorithm (Session-focused, difficulty-based scheduling)
+class MasteryBasedAlgorithm extends BaseAlgorithm {
+    constructor() {
+        super();
+        this.name = 'Mastery Based';
+        this.sessionCardsSeen = 0; // Track cards seen in this session
+        this.config = {
+            failedCardTimeout: 5 * 60 * 1000, // 5 minutes before failed card can be removed from priority
+            maxFailedCards: 10, // Maximum failed cards to keep in rotation
+            // Difficulty-based scheduling (in number of cards)
+            difficultyIntervals: {
+                1: { min: 1, max: 3 },    // No Idea: next 1-3 cards
+                2: { min: 4, max: 8 },    // Hard: next 4-8 cards
+                3: { min: 9, max: 20 },   // Almost: next 9-20 cards
+                4: { min: 21, max: 50 },  // Easy: after 21-50 cards
+                5: { min: 51, max: 100 }  // Instant: after 51-100 cards
+            }
+        };
+    }
+
+    getMasteryLevel(progress) {
+        if (!progress) return 'new';
+
+        const { reviewCount, successRate } = progress;
+
+        // Mastered: 5+ reviews with 80%+ success, or 3+ reviews with 90%+ success
+        if ((reviewCount >= 5 && successRate >= 0.8) ||
+            (reviewCount >= 3 && successRate >= 0.9)) {
+            return 'mastered';
+        }
+
+        // Familiar: 3+ reviews with 60%+ success
+        if (reviewCount >= 3 && successRate >= 0.6) {
+            return 'familiar';
+        }
+
+        // Learning: Everything else that's been seen
+        if (reviewCount > 0) {
+            return 'learning';
+        }
+
+        return 'new';
+    }
+
+    getNextCard(characters, userProgress, state) {
+        // Increment session counter
+        this.sessionCardsSeen++;
+
+        // Categorize cards based on when they should be reviewed
+        const dueNow = [];      // Cards due at current position
+        const dueSoon = [];     // Cards due within next 5 positions
+        const dueLater = [];    // Cards due later
+        const newCards = [];    // Never seen cards
+
+        for (let i = 0; i < characters.length; i++) {
+            const char = characters[i];
+            const progress = userProgress[i];
+
+            if (!progress) {
+                // New card
+                newCards.push({ char, index: i });
+                continue;
+            }
+
+            // Check if card has a target review position
+            if (progress.targetReviewPosition !== undefined) {
+                const cardsUntilDue = progress.targetReviewPosition - this.sessionCardsSeen;
+
+                if (cardsUntilDue <= 0) {
+                    // Card is due now or overdue
+                    dueNow.push({
+                        char,
+                        index: i,
+                        progress,
+                        overdue: Math.abs(cardsUntilDue)
+                    });
+                } else if (cardsUntilDue <= 5) {
+                    // Card is due soon
+                    dueSoon.push({
+                        char,
+                        index: i,
+                        progress,
+                        cardsUntilDue
+                    });
+                } else {
+                    // Card is due later
+                    dueLater.push({
+                        char,
+                        index: i,
+                        progress,
+                        cardsUntilDue
+                    });
+                }
+            } else {
+                // Old data without target position, treat as due
+                dueNow.push({
+                    char,
+                    index: i,
+                    progress,
+                    overdue: 0
+                });
+            }
+        }
+
+        // Priority 1: Cards that are due now (or overdue)
+        if (dueNow.length > 0) {
+            // Sort by how overdue they are (most overdue first)
+            dueNow.sort((a, b) => b.overdue - a.overdue);
+
+            // For variety, pick from top 3 most overdue
+            const topCandidates = dueNow.slice(0, Math.min(3, dueNow.length));
+            const selected = topCandidates[Math.floor(Math.random() * topCandidates.length)];
+
+            return selected;
+        }
+
+        // Priority 2: If no cards are due, introduce a new card
+        if (newCards.length > 0 && state.sessionCorrectStreak >= 1) {
+            // Pick the first new card (they're already in frequency order)
+            return newCards[0];
+        }
+
+        // Priority 3: Cards due soon (within 5 reviews)
+        if (dueSoon.length > 0) {
+            // Pick the one due soonest
+            dueSoon.sort((a, b) => a.cardsUntilDue - b.cardsUntilDue);
+            return dueSoon[0];
+        }
+
+        // Priority 4: If nothing else, pick from cards due later
+        if (dueLater.length > 0) {
+            // Pick the one due soonest
+            dueLater.sort((a, b) => a.cardsUntilDue - b.cardsUntilDue);
+            return dueLater[0];
+        }
+
+        // Priority 5: New cards even without good streak
+        if (newCards.length > 0) {
+            return newCards[0];
+        }
+
+        // Fallback: return first character
+        return { char: characters[0], index: 0 };
+    }
+
+    // Calculate when a card should be reviewed based on difficulty
+    calculateTargetReviewPosition(difficulty) {
+        const interval = this.config.difficultyIntervals[difficulty];
+        if (!interval) return this.sessionCardsSeen + 10; // Default fallback
+
+        // Add some randomness within the range
+        const range = interval.max - interval.min;
+        const offset = interval.min + Math.floor(Math.random() * range);
+
+        return this.sessionCardsSeen + offset;
+    }
+
+    // Simplified intervals - not really used for scheduling, just for tracking
+    calculateInitialInterval(difficulty) {
+        // These are just for record-keeping, not actual scheduling
+        return 1000; // 1 second placeholder
+    }
+
+    calculateNextInterval(difficulty, currentInterval, successRate) {
+        // Not used for scheduling in this algorithm
+        return 1000; // 1 second placeholder
+    }
+}
+
 // Export the algorithms
 const ALGORITHMS = {
     improved: ImprovedSSRAlgorithm,
     anki: AnkiAlgorithm,
-    aggressive: AggressiveAlgorithm
+    aggressive: AggressiveAlgorithm,
+    mastery: MasteryBasedAlgorithm
 };
 
 // Factory function to create algorithm instances
-function createAlgorithm(type = 'improved') {
-    const AlgorithmClass = ALGORITHMS[type] || ImprovedSSRAlgorithm;
+function createAlgorithm(type = 'mastery') {
+    const AlgorithmClass = ALGORITHMS[type] || MasteryBasedAlgorithm;
     return new AlgorithmClass();
 }
