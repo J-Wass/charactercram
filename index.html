@@ -20,31 +20,6 @@
 </head>
 <body>
     <div class="container">
-        <div class="level-selector">
-            <select id="levelSelect">
-                <!-- Will be populated by JavaScript -->
-            </select>
-            <button id="reviewBtn" class="btn btn-review">Review Mode</button>
-        </div>
-        
-        <div id="reviewModal" class="modal hidden">
-            <div class="modal-content">
-                <h3>Review Mode</h3>
-                <div style="margin: 20px 0;">
-                    <p style="margin-bottom: 15px;">Practice characters 1 to <input type="number" id="reviewInput" min="10" max="5000" value="100" style="width: 100px; padding: 8px; border: 2px solid #667eea; border-radius: 5px; font-size: 18px; font-weight: bold; text-align: center;"></p>
-                    <div class="preset-buttons" style="display: flex; gap: 10px; justify-content: center; margin-bottom: 20px;">
-                        <button class="preset-btn" data-value="50">50</button>
-                        <button class="preset-btn" data-value="100">100</button>
-                        <button class="preset-btn" data-value="1000">1000</button>
-                        <button class="preset-btn" data-value="5000">All (5000)</button>
-                    </div>
-                </div>
-                <div class="modal-buttons">
-                    <button id="startReview" class="btn btn-primary">Start Review</button>
-                    <button id="cancelReview" class="btn btn-secondary">Cancel</button>
-                </div>
-            </div>
-        </div>
 
         <div class="game-area">
             <div class="prompt-section">
@@ -52,10 +27,7 @@
                     <h2 id="pinyin" class="pinyin">Loading...</h2>
                     <p id="english" class="english">Please wait...</p>
                 </div>
-                <div class="progress-info">
-                    <span id="avgScore">Avg Score: -</span>
-                    <span id="cardsSeen">0 cards seen</span>
-                </div>
+
             </div>
 
             <div class="practice-area">
@@ -109,7 +81,46 @@
     <!-- Toast notification -->
     <div id="toast" class="toast"></div>
 
+    <!-- Stats Corner Button -->
+    <button id="statsCornerBtn" class="stats-corner-btn">
+        <span class="stats-icon">📊</span>
+    </button>
+
+    <!-- Stats Modal -->
+    <div id="statsModal" class="stats-modal">
+        <div class="stats-modal-content">
+            <button class="stats-close-btn" id="statsCloseBtn">×</button>
+            <h2 class="stats-modal-title">Your Progress</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="totalLearned">0</span>
+                    <span class="stat-label">Characters Seen</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="nearlyMastered">0</span>
+                    <span class="stat-label">Familiar</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="mastered">0</span>
+                    <span class="stat-label">Mastered</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="dueToday">0</span>
+                    <span class="stat-label">Due Today</span>
+                </div>
+            </div>
+
+            <!-- Search Section -->
+            <div class="stats-search-section">
+                <h3 class="search-title">Look up a character</h3>
+                <input type="text" id="charSearchInput" class="char-search-input" placeholder="Search by Chinese, Pinyin, or English...">
+                <div id="searchResults" class="search-results"></div>
+            </div>
+        </div>
+    </div>
+
     <script src="chars_data.js"></script>
+    <script src="algorithms.js"></script>
     <script src="app.js"></script>
 
     <!-- Service Worker Registration -->
