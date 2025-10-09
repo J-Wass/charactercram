@@ -476,16 +476,165 @@ class MasteryBasedAlgorithm extends BaseAlgorithm {
     }
 }
 
+// Bucket Algorithm - Learn 5 cards at a time with 50/50 new/mastered split
+class BucketAlgorithm extends BaseAlgorithm {
+    constructor() {
+        super();
+        this.name = 'Bucket Learning';
+        this.config = {
+            bucketSize: 5,           // Max cards in active bucket
+            masteryThreshold: 3,     // Consecutive good ratings (4+) to master
+            masteredReviewChance: 0.5 // 50% chance to review mastered when adding new
+        };
+    }
+
+    // Check if a card is mastered
+    isCardMastered(progress) {
+        if (!progress) return false;
+
+        // Check if card has reached mastery threshold
+        if (!progress.consecutiveGood || progress.consecutiveGood < this.config.masteryThreshold) {
+            return false;
+        }
+
+        // Check if it's been un-mastered
+        if (progress.wasUnmastered) {
+            return false;
+        }
+
+        return true;
+    }
+
+    // Get indices of cards in the active bucket
+    getActiveBucket(userProgress) {
+        const bucketCards = [];
+
+        for (const [index, progress] of Object.entries(userProgress)) {
+            if (progress && progress.inBucket && !this.isCardMastered(progress)) {
+                bucketCards.push(parseInt(index));
+            }
+        }
+
+        return bucketCards;
+    }
+
+    // Get mastered cards
+    getMasteredCards(userProgress) {
+        const masteredCards = [];
+
+        for (const [index, progress] of Object.entries(userProgress)) {
+            if (progress && this.isCardMastered(progress)) {
+                masteredCards.push(parseInt(index));
+            }
+        }
+
+        return masteredCards;
+    }
+
+    getNextCard(characters, userProgress, state) {
+        const bucketCards = this.getActiveBucket(userProgress);
+        const masteredCards = this.getMasteredCards(userProgress);
+
+        // If bucket is not full, try to add a card
+        if (bucketCards.length < this.config.bucketSize) {
+            // 50% chance to pull from mastered cards, 50% chance for new card
+            const shouldPullMastered = Math.random() < this.config.masteredReviewChance;
+
+            if (shouldPullMastered && masteredCards.length > 0) {
+                // Pick a random mastered card
+                const randomIndex = Math.floor(Math.random() * masteredCards.length);
+                const cardIndex = masteredCards[randomIndex];
+
+                if (characters[cardIndex]) {
+                    return {
+                        char: characters[cardIndex],
+                        index: cardIndex,
+                        isMasteryCheck: true
+                    };
+                }
+            } else {
+                // Try to find a new card and add it to the bucket
+                for (let i = 0; i < characters.length; i++) {
+                    if (!userProgress[i] && characters[i]) {
+                        return {
+                            char: characters[i],
+                            index: i,
+                            isNew: true,
+                            addToBucket: true  // Flag to add this card to bucket
+                        };
+                    }
+                }
+            }
+        }
+
+        // If bucket is full or no new cards available, pick random from bucket
+        if (bucketCards.length > 0) {
+            const randomIndex = Math.floor(Math.random() * bucketCards.length);
+            const cardIndex = bucketCards[randomIndex];
+
+            if (characters[cardIndex]) {
+                return {
+                    char: characters[cardIndex],
+                    index: cardIndex
+                };
+            }
+        }
+
+        // If bucket is empty but we have mastered cards, review one
+        if (masteredCards.length > 0) {
+            const randomIndex = Math.floor(Math.random() * masteredCards.length);
+            const cardIndex = masteredCards[randomIndex];
+
+            if (characters[cardIndex]) {
+                return {
+                    char: characters[cardIndex],
+                    index: cardIndex,
+                    isMasteryCheck: true
+                };
+            }
+        }
+
+        // Fallback: return first character if it exists
+        if (characters.length > 0 && characters[0]) {
+            return {
+                char: characters[0],
+                index: 0,
+                isNew: true,
+                addToBucket: true
+            };
+        }
+
+        // Ultimate fallback
+        return null;
+    }
+
+    // Override to track mastery - only 4+ counts as correct
+    isCardCorrect(difficulty) {
+        return difficulty >= 4;
+    }
+
+    calculateInitialInterval(difficulty) {
+        // Not used for scheduling, just for compatibility
+        return 1000;
+    }
+
+    calculateNextInterval(difficulty, currentInterval, successRate) {
+        // Not used for scheduling
+        return 1000;
+    }
+}
+
 // Export the algorithms
 const ALGORITHMS = {
     improved: ImprovedSSRAlgorithm,
     anki: AnkiAlgorithm,
     aggressive: AggressiveAlgorithm,
-    mastery: MasteryBasedAlgorithm
+    mastery: MasteryBasedAlgorithm,
+    bucket: BucketAlgorithm
 };
 
 // Factory function to create algorithm instances
-function createAlgorithm(type = 'mastery') {
-    const AlgorithmClass = ALGORITHMS[type] || MasteryBasedAlgorithm;
+function createAlgorithm(type = 'bucket') {
+    const AlgorithmClass = ALGORITHMS[type] || BucketAlgorithm;
     return new AlgorithmClass();
 }

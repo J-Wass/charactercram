@@ -1,9 +1,11 @@
 // Simplified Chinese Character Practice App with Anki-like Spaced Repetition
 
 class ChineseCharacterApp {
-    constructor(algorithmType = 'mastery') {
+    constructor(algorithmType = 'bucket') {
         this.characters = [];
         this.currentChar = null;
+        this.currentCharIndex = null;
+        this.currentResult = null;  // Store the full result from getNextCard
         this.userProgress = this.loadProgress();
         this.canvas = null;
         this.ctx = null;
@@ -318,13 +320,14 @@ class ChineseCharacterApp {
 
     nextCharacter() {
         const result = this.getNextCharacter();
-        if (!result) {
+        if (!result || !result.char) {
             alert('No characters available');
             return;
         }
 
         this.currentChar = result.char;
         this.currentCharIndex = result.index;
+        this.currentResult = result;  // Store the full result
 
         // Update UI
         document.getElementById('pinyin').textContent = this.currentChar.pinyin || 'N/A';
@@ -418,7 +421,13 @@ class ChineseCharacterApp {
                 nextReview: now + initialInterval,
                 interval: initialInterval,
                 history: [difficulty],
-                targetReviewPosition: targetReviewPosition // Add target position
+                targetReviewPosition: targetReviewPosition, // Add target position
+                // Mastery tracking fields (for algorithms that use them)
+                consecutiveGood: difficulty >= 4 ? 1 : 0,
+                wasUnmastered: false,
+                masteredAt: null,
+                // Bucket tracking (for Bucket algorithm)
+                inBucket: this.currentResult && this.currentResult.addToBucket ? true : false
             };
         } else {
             // Updating existing card
@@ -438,6 +447,38 @@ class ChineseCharacterApp {
                 progress.successCount++;
             }
             progress.successRate = progress.successCount / progress.reviewCount;
+
+            // Track consecutive good ratings for mastery-based algorithms
+            if (difficulty >= 4) {
+                progress.consecutiveGood = (progress.consecutiveGood || 0) + 1;
+
+                // Check if card just reached mastery threshold
+                if (this.algorithm.config.masteryThreshold &&
+                    progress.consecutiveGood === this.algorithm.config.masteryThreshold &&
+                    !progress.masteredAt) {
+                    progress.masteredAt = now;
+                    progress.wasUnmastered = false;
+                    // Remove from bucket when mastered
+                    if (this.algorithm.name === 'Bucket Learning') {
+                        progress.inBucket = false;
+                    }
+                    console.log(`Card ${this.currentChar.character} mastered!`);
+                }
+            } else {
+                // Reset consecutive good count
+                progress.consecutiveGood = 0;
+
+                // If this was a mastered card, mark it as unmastered
+                if (this.algorithm.config.masteryThreshold && progress.masteredAt) {
+                    progress.wasUnmastered = true;
+                    progress.masteredAt = null;
+                    // Add back to bucket when unmastered
+                    if (this.algorithm.name === 'Bucket Learning') {
+                        progress.inBucket = true;
+                    }
+                    console.log(`Card ${this.currentChar.character} unmastered (got difficulty ${difficulty})`);
+                }
+            }
 
             // Calculate next interval using the algorithm
             progress.interval = this.algorithm.calculateNextInterval(
@@ -869,10 +910,27 @@ class ChineseCharacterApp {
     updateDebugInfo() {
         // Session info
         const sessionInfo = document.getElementById('debugSessionInfo');
+
+        // Get bucket/mastered counts if using Bucket algorithm
+        let bucketInfo = '';
+        if (this.algorithm.name === 'Bucket Learning') {
+            const bucketCards = this.algorithm.getActiveBucket(this.userProgress);
+            const masteredCards = this.algorithm.getMasteredCards(this.userProgress);
+            bucketInfo = `
+                <div class="debug-info-row">
+                    <span>Active Bucket:</span> <strong>${bucketCards.length} / ${this.algorithm.config.bucketSize}</strong>
+                </div>
+                <div class="debug-info-row">
+                    <span>Mastered Cards:</span> <strong>${masteredCards.length}</strong>
+                </div>
+            `;
+        }
+
         sessionInfo.innerHTML = `
             <div class="debug-info-row">
                 <span>Algorithm:</span> <strong>${this.algorithm.name}</strong>
             </div>
+            ${bucketInfo}
             <div class="debug-info-row">
                 <span>Cards Seen (Session):</span> <strong>${this.algorithm.sessionCardsSeen || 0}</strong>
             </div>
@@ -891,6 +949,21 @@ class ChineseCharacterApp {
         const currentCard = document.getElementById('debugCurrentCard');
         if (this.currentChar) {
             const progress = this.userProgress[this.currentCharIndex];
+
+            // Check mastery status for Bucket algorithm
+            let masteryStatus = '';
+            if (this.algorithm.name === 'Bucket Learning' && progress) {
+                if (this.algorithm.isCardMastered(progress)) {
+                    masteryStatus = '<span style="color: #10b981; font-weight: bold;">✓ MASTERED</span>';
+                } else if (progress.wasUnmastered) {
+                    masteryStatus = '<span style="color: #f97316; font-weight: bold;">⚠ UNMASTERED</span>';
+                } else if (progress.consecutiveGood > 0) {
+                    masteryStatus = `<span style="color: #f59e0b;">Progress: ${progress.consecutiveGood}/${this.algorithm.config.masteryThreshold}</span>`;
+                } else {
+                    masteryStatus = '<span style="color: #999;">Learning</span>';
+                }
+            }
+
             currentCard.innerHTML = `
                 <div class="debug-card-info">
                     <span class="debug-char">${this.currentChar.character}</span>
@@ -898,15 +971,23 @@ class ChineseCharacterApp {
                     <span class="debug-small">${this.currentChar.definition}</span>
                 </div>
                 ${progress ? `
+                    ${masteryStatus ? `<div class="debug-info-row"><span>Status:</span> ${masteryStatus}</div>` : ''}
                     <div class="debug-info-row">
                         <span>Reviews:</span> <strong>${progress.reviewCount}</strong>
                     </div>
                     <div class="debug-info-row">
                         <span>Success Rate:</span> <strong>${Math.round(progress.successRate * 100)}%</strong>
                     </div>
-                    <div class="debug-info-row">
-                        <span>Target Position:</span> <strong>${progress.targetReviewPosition || 'N/A'}</strong>
-                    </div>
+                    ${progress.consecutiveGood !== undefined ? `
+                        <div class="debug-info-row">
+                            <span>Consecutive Good:</span> <strong>${progress.consecutiveGood}</strong>
+                        </div>
+                    ` : ''}
+                    ${progress.targetReviewPosition ? `
+                        <div class="debug-info-row">
+                            <span>Target Position:</span> <strong>${progress.targetReviewPosition}</strong>
+                        </div>
+                    ` : ''}
                 ` : '<div class="debug-info-row">New Card (never seen)</div>'}
             `;
         } else {
@@ -922,6 +1003,48 @@ class ChineseCharacterApp {
 
     showUpcomingCards() {
         const upcomingDiv = document.getElementById('debugUpcomingCards');
+        let html = '';
+
+        // Show bucket contents if using Bucket algorithm
+        if (this.algorithm.name === 'Bucket Learning') {
+            const bucketCards = this.algorithm.getActiveBucket(this.userProgress);
+
+            html += '<h4 style="margin-bottom: 10px; color: #667eea;">Active Bucket Cards:</h4>';
+
+            if (bucketCards.length === 0) {
+                html += '<div style="padding: 10px; color: #999; font-style: italic;">Bucket is empty</div>';
+            } else {
+                html += bucketCards.map((index, idx) => {
+                    const char = this.characters[index];
+                    const progress = this.userProgress[index];
+
+                    // Skip if no progress data (shouldn't happen, but safety check)
+                    if (!progress) return '';
+
+                    const consecutiveGood = progress.consecutiveGood || 0;
+                    let statusBadge = '';
+                    if (consecutiveGood > 0) {
+                        statusBadge = `<span style="background: #f59e0b; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${consecutiveGood}/${this.algorithm.config.masteryThreshold}</span>`;
+                    } else {
+                        statusBadge = `<span style="background: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">0/${this.algorithm.config.masteryThreshold}</span>`;
+                    }
+
+                    return `
+                        <div class="debug-upcoming-card" style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea;">
+                            <span class="debug-upcoming-number">${idx + 1}.</span>
+                            <span class="debug-char-small">${char.character}</span>
+                            <span class="debug-pinyin">${char.pinyin}</span>
+                            <span class="debug-stats">
+                                ${progress.reviewCount} reviews | ${Math.round(progress.successRate * 100)}% | ${statusBadge}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            html += '<h4 style="margin: 20px 0 10px; color: #667eea;">Upcoming Cards (Next ~20):</h4>';
+        }
+
         const upcoming = [];
 
         // Temporarily store current state
@@ -930,7 +1053,7 @@ class ChineseCharacterApp {
         // Simulate next 20 cards
         for (let i = 0; i < 20; i++) {
             const result = this.algorithm.getNextCard(this.characters, this.userProgress, this.algorithmState);
-            if (result) {
+            if (result && result.char) {
                 const progress = this.userProgress[result.index];
                 upcoming.push({
                     char: result.char.character,
@@ -940,7 +1063,9 @@ class ChineseCharacterApp {
                     successRate: progress ? Math.round(progress.successRate * 100) : 0,
                     targetPos: progress ? progress.targetReviewPosition : null,
                     cardsUntilDue: progress && progress.targetReviewPosition ?
-                        progress.targetReviewPosition - (this.algorithm.sessionCardsSeen || 0) : null
+                        progress.targetReviewPosition - (this.algorithm.sessionCardsSeen || 0) : null,
+                    isMasteryCheck: result.isMasteryCheck,
+                    isNew: result.isNew
                 });
             }
         }
@@ -950,21 +1075,33 @@ class ChineseCharacterApp {
             this.algorithm.sessionCardsSeen = originalSessionCards;
         }
 
-        upcomingDiv.innerHTML = upcoming.map((card, idx) => `
-            <div class="debug-upcoming-card">
-                <span class="debug-upcoming-number">${idx + 1}.</span>
-                <span class="debug-char-small">${card.char}</span>
-                <span class="debug-pinyin">${card.pinyin}</span>
-                <span class="debug-stats">
-                    ${card.reviews > 0 ? `Tried ${card.reviews} times | ${card.successRate}% success` : 'NEW'}
-                    ${card.cardsUntilDue !== null ?
-                        (card.cardsUntilDue <= 0 ?
-                            `<span class="debug-due">DUE</span>` :
-                            `<span class="debug-in">in ${card.cardsUntilDue}</span>`)
-                        : ''}
-                </span>
-            </div>
-        `).join('');
+        html += upcoming.map((card, idx) => {
+            let badge = '';
+            if (card.isMasteryCheck) {
+                badge = '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">MASTERY CHECK</span>';
+            } else if (card.isNew) {
+                badge = '<span style="background: #9ca3af; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-left: 8px;">NEW</span>';
+            }
+
+            return `
+                <div class="debug-upcoming-card">
+                    <span class="debug-upcoming-number">${idx + 1}.</span>
+                    <span class="debug-char-small">${card.char}</span>
+                    <span class="debug-pinyin">${card.pinyin}</span>
+                    <span class="debug-stats">
+                        ${card.reviews > 0 ? `Tried ${card.reviews} times | ${card.successRate}% success` : 'NEW'}
+                        ${card.cardsUntilDue !== null ?
+                            (card.cardsUntilDue <= 0 ?
+                                `<span class="debug-due">DUE</span>` :
+                                `<span class="debug-in">in ${card.cardsUntilDue}</span>`)
+                            : ''}
+                        ${badge}
+                    </span>
+                </div>
+            `;
+        }).join('');
+
+        upcomingDiv.innerHTML = html;
     }
 
     showCardCategories() {
