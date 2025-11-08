@@ -20,7 +20,7 @@ body {
     background: white;
     border-radius: 20px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    max-width: 800px;
+    max-width: 900px;
     width: 100%;
     padding: 30px;
 }
@@ -360,9 +360,10 @@ body {
 
 .canvas-wrapper {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     gap: 30px;
-    align-items: flex-start;
+    align-items: center;
 }
 
 .canvas-container {
@@ -394,6 +395,8 @@ body {
     cursor: crosshair;
     touch-action: none;
     background: white;
+    max-width: 100%;
+    height: auto;
 }
 
 .clear-x-btn {
@@ -423,12 +426,22 @@ body {
     transform: scale(1.1);
 }
 
-#strokeGif {
+.gif-container {
+    display: flex;
+    gap: 0px;
+    justify-content: center;
+}
+
+.stroke-gif {
     width: 300px;
     height: 300px;
     border: 2px solid #ddd;
     border-radius: 10px;
     background: white;
+}
+
+.stroke-gif.hidden {
+    display: none;
 }
 
 .controls-section {
@@ -824,13 +837,6 @@ body {
 }
 
 /* Mobile responsiveness */
-@media (max-width: 768px) {
-    .canvas-wrapper {
-        flex-direction: column;
-        align-items: center;
-    }
-}
-
 @media (max-width: 600px) {
     .stats-corner-btn {
         bottom: 20px;
@@ -887,10 +893,28 @@ body {
         letter-spacing: 1px;
     }
 
-    #drawingCanvas,
-    #strokeGif {
+    #drawingCanvas {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+    }
+
+    .stroke-gif {
         width: 250px;
         height: 250px;
+    }
+
+    /* When there are 2 GIFs, make them smaller and side-by-side */
+    .gif-container:has(.stroke-gif:not(.hidden) ~ .stroke-gif:not(.hidden)) .stroke-gif {
+        width: 48%;
+        max-width: 220px;
+        height: auto;
+    }
+
+    .gif-container {
+        flex-direction: row;
+        justify-content: center;
+        gap: 5px;
     }
 
     .difficulty-btn {

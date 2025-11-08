@@ -1,7 +1,7 @@
 // Simplified Chinese Character Practice App with Anki-like Spaced Repetition
 
 class ChineseCharacterApp {
-    constructor(algorithmType = 'bucket') {
+    constructor(algorithmType = 'score') {  // Using ScoreDistributionAlgorithm
         this.characters = [];
         this.currentChar = null;
         this.currentCharIndex = null;
@@ -13,6 +13,7 @@ class ChineseCharacterApp {
         this.lastX = 0;
         this.lastY = 0;
         this.hasBackground = false;
+        this.charCount = 1;  // Track number of characters in current word (1 or 2)
 
         // Initialize the algorithm
         this.currentAlgorithmType = algorithmType;
@@ -171,21 +172,68 @@ class ChineseCharacterApp {
         this.ctx.strokeStyle = '#ddd';
         this.ctx.lineWidth = 1;
 
-        // Draw cross guides
-        this.ctx.beginPath();
-        this.ctx.moveTo(this.canvas.width / 2, 0);
-        this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
-        this.ctx.moveTo(0, this.canvas.height / 2);
-        this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
-        this.ctx.stroke();
+        if (this.charCount === 2) {
+            // For 2 characters: draw guide lines for each half
+            const halfWidth = this.canvas.width / 2;
 
-        // Draw diagonal guides
-        this.ctx.beginPath();
-        this.ctx.moveTo(0, 0);
-        this.ctx.lineTo(this.canvas.width, this.canvas.height);
-        this.ctx.moveTo(this.canvas.width, 0);
-        this.ctx.lineTo(0, this.canvas.height);
-        this.ctx.stroke();
+            // Left character guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth / 2, 0);
+            this.ctx.lineTo(halfWidth / 2, this.canvas.height);
+            this.ctx.moveTo(0, this.canvas.height / 2);
+            this.ctx.lineTo(halfWidth, this.canvas.height / 2);
+            this.ctx.stroke();
+
+            // Left diagonal guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(halfWidth, this.canvas.height);
+            this.ctx.moveTo(halfWidth, 0);
+            this.ctx.lineTo(0, this.canvas.height);
+            this.ctx.stroke();
+
+            // Right character guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth + halfWidth / 2, 0);
+            this.ctx.lineTo(halfWidth + halfWidth / 2, this.canvas.height);
+            this.ctx.moveTo(halfWidth, this.canvas.height / 2);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+            this.ctx.stroke();
+
+            // Right diagonal guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth, 0);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height);
+            this.ctx.moveTo(this.canvas.width, 0);
+            this.ctx.lineTo(halfWidth, this.canvas.height);
+            this.ctx.stroke();
+
+            // Subtle vertical divider
+            this.ctx.strokeStyle = '#e5e5e5';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth, 0);
+            this.ctx.lineTo(halfWidth, this.canvas.height);
+            this.ctx.stroke();
+            this.ctx.strokeStyle = '#ddd';
+            this.ctx.lineWidth = 1;
+        } else {
+            // For 1 character: draw centered guides (same as before)
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.canvas.width / 2, 0);
+            this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+            this.ctx.moveTo(0, this.canvas.height / 2);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+            this.ctx.stroke();
+
+            // Draw diagonal guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height);
+            this.ctx.moveTo(this.canvas.width, 0);
+            this.ctx.lineTo(0, this.canvas.height);
+            this.ctx.stroke();
+        }
 
         // Draw border
         this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
@@ -329,6 +377,9 @@ class ChineseCharacterApp {
         this.currentCharIndex = result.index;
         this.currentResult = result;  // Store the full result
 
+        // Detect if character field contains 1 or 2 characters
+        this.charCount = this.currentChar.character.length;
+
         // Update UI
         document.getElementById('pinyin').textContent = this.currentChar.pinyin || 'N/A';
         document.getElementById('english').textContent = this.currentChar.definition || 'No definition';
@@ -356,13 +407,30 @@ class ChineseCharacterApp {
 
         const answerContainer = document.getElementById('answerContainer');
         const difficultySection = document.getElementById('difficultySection');
-        const gif = document.getElementById('strokeGif');
+        const gif1 = document.getElementById('strokeGif1');
+        const gif2 = document.getElementById('strokeGif2');
 
-        // Set the GIF source
-        gif.src = `img/${this.currentChar.character}.gif`;
+        const chars = this.currentChar.character.split('');
 
-        // Extract first frame and set as canvas background
-        this.setCanvasBackground(`img/${this.currentChar.character}.gif`);
+        if (chars.length === 1) {
+            // Single character: show only first GIF
+            gif1.src = `img/${chars[0]}.gif`;
+            gif1.classList.remove('hidden');
+            gif2.classList.add('hidden');
+
+            // Set single character as canvas background
+            this.setCanvasBackground(`img/${chars[0]}.gif`, 0);
+        } else if (chars.length === 2) {
+            // Two characters: show both GIFs
+            gif1.src = `img/${chars[0]}.gif`;
+            gif2.src = `img/${chars[1]}.gif`;
+            gif1.classList.remove('hidden');
+            gif2.classList.remove('hidden');
+
+            // Set both characters as canvas backgrounds
+            this.setCanvasBackground(`img/${chars[0]}.gif`, 0);
+            this.setCanvasBackground(`img/${chars[1]}.gif`, 1);
+        }
 
         // Show the answer container and difficulty buttons
         answerContainer.classList.remove('hidden');
@@ -410,6 +478,13 @@ class ChineseCharacterApp {
         if (!this.userProgress[index]) {
             // First time seeing this card
             const initialInterval = this.algorithm.calculateInitialInterval(difficulty);
+
+            // Initialize score for ScoreDistributionAlgorithm
+            let initialScore = 0;
+            if (this.algorithm.name === 'Score Distribution' && this.algorithm.config) {
+                initialScore = this.algorithm.config.initialScore;
+            }
+
             this.userProgress[index] = {
                 character: this.currentChar.character,
                 firstSeen: now,
@@ -427,8 +502,21 @@ class ChineseCharacterApp {
                 wasUnmastered: false,
                 masteredAt: null,
                 // Bucket tracking (for Bucket algorithm)
-                inBucket: this.currentResult && this.currentResult.addToBucket ? true : false
+                inBucket: this.currentResult && this.currentResult.addToBucket ? true : false,
+                // Batch tracking (for ScoreDistributionAlgorithm)
+                inBatch: this.currentResult && this.currentResult.addToBatch ? true : false,
+                // Score tracking (for ScoreDistributionAlgorithm)
+                score: initialScore
             };
+
+            // Update score for ScoreDistributionAlgorithm
+            if (this.algorithm.name === 'Score Distribution' && this.algorithm.updateScore) {
+                this.userProgress[index].score = this.algorithm.updateScore(initialScore, difficulty);
+
+                if (this.userProgress[index].inBatch) {
+                    console.log(`Card ${this.currentChar.character} added to batch! Score: ${this.userProgress[index].score}`);
+                }
+            }
         } else {
             // Updating existing card
             const progress = this.userProgress[index];
@@ -492,6 +580,18 @@ class ChineseCharacterApp {
             if (targetReviewPosition !== undefined) {
                 progress.targetReviewPosition = targetReviewPosition;
             }
+
+            // Update score for ScoreDistributionAlgorithm
+            if (this.algorithm.name === 'Score Distribution' && this.algorithm.updateScore) {
+                const currentScore = progress.score !== undefined ? progress.score : this.algorithm.config.initialScore;
+                progress.score = this.algorithm.updateScore(currentScore, difficulty);
+
+                // Remove from batch if mastered (score <= threshold)
+                if (progress.score <= this.algorithm.config.masteryThreshold && progress.inBatch) {
+                    progress.inBatch = false;
+                    console.log(`Card ${this.currentChar.character} mastered! Score: ${progress.score}`);
+                }
+            }
         }
 
         // Update stats
@@ -520,7 +620,7 @@ class ChineseCharacterApp {
             '0, 0, 0';
     }
 
-    setCanvasBackground(gifSrc) {
+    setCanvasBackground(gifSrc, charPosition = 0) {
         const img = new Image();
         img.crossOrigin = 'anonymous';
         img.onload = () => {
@@ -529,16 +629,36 @@ class ChineseCharacterApp {
             this.clearCanvas();
 
             this.ctx.globalAlpha = 0.3;
-            const scale = Math.min(
-                this.canvas.width / img.width,
-                this.canvas.height / img.height
-            );
-            const width = img.width * scale;
-            const height = img.height * scale;
-            const x = (this.canvas.width - width) / 2;
-            const y = (this.canvas.height - height) / 2;
 
-            this.ctx.drawImage(img, x, y, width, height);
+            if (this.charCount === 2) {
+                // For 2 characters: position in left or right half
+                const halfWidth = this.canvas.width / 2;
+                const scale = Math.min(
+                    halfWidth / img.width,
+                    this.canvas.height / img.height
+                );
+                const width = img.width * scale;
+                const height = img.height * scale;
+
+                // Calculate x position based on character position (0 = left, 1 = right)
+                const xOffset = charPosition === 0 ? 0 : halfWidth;
+                const x = xOffset + (halfWidth - width) / 2;
+                const y = (this.canvas.height - height) / 2;
+
+                this.ctx.drawImage(img, x, y, width, height);
+            } else {
+                // For 1 character: center it
+                const scale = Math.min(
+                    this.canvas.width / img.width,
+                    this.canvas.height / img.height
+                );
+                const width = img.width * scale;
+                const height = img.height * scale;
+                const x = (this.canvas.width - width) / 2;
+                const y = (this.canvas.height - height) / 2;
+
+                this.ctx.drawImage(img, x, y, width, height);
+            }
 
             this.ctx.globalAlpha = 1;
             this.ctx.putImageData(imageData, 0, 0);
@@ -926,6 +1046,28 @@ class ChineseCharacterApp {
             `;
         }
 
+        // Get batch info for ScoreDistributionAlgorithm
+        if (this.algorithm.name === 'Score Distribution') {
+            const batchCards = this.algorithm.getActiveBatch(this.userProgress);
+            const masteredCount = Object.values(this.userProgress).filter(p =>
+                p.score !== undefined && p.score <= this.algorithm.config.masteryThreshold
+            ).length;
+
+            const displayThreshold = -this.algorithm.config.masteryThreshold; // Flip sign for display
+
+            bucketInfo = `
+                <div class="debug-info-row">
+                    <span>Active Batch:</span> <strong>${batchCards.length} / ${this.algorithm.config.batchSize}</strong>
+                </div>
+                <div class="debug-info-row">
+                    <span>Mastered Cards:</span> <strong>${masteredCount}</strong>
+                </div>
+                <div class="debug-info-row">
+                    <span>Mastery Threshold:</span> <strong>≥ ${displayThreshold}</strong>
+                </div>
+            `;
+        }
+
         sessionInfo.innerHTML = `
             <div class="debug-info-row">
                 <span>Algorithm:</span> <strong>${this.algorithm.name}</strong>
@@ -964,6 +1106,25 @@ class ChineseCharacterApp {
                 }
             }
 
+            // Check status for ScoreDistributionAlgorithm
+            let scoreInfo = '';
+            if (this.algorithm.name === 'Score Distribution' && progress) {
+                const score = progress.score !== undefined ? progress.score : 0;
+                const displayScore = -score; // Flip sign for display
+                const inBatch = progress.inBatch ? 'Yes' : 'No';
+                const isMastered = score <= this.algorithm.config.masteryThreshold;
+
+                scoreInfo = `
+                    <div class="debug-info-row">
+                        <span>Score:</span> <strong style="color: ${isMastered ? '#10b981' : score > 3 ? '#ef4444' : '#f59e0b'};">${displayScore}</strong>
+                    </div>
+                    <div class="debug-info-row">
+                        <span>In Batch:</span> <strong>${inBatch}</strong>
+                    </div>
+                    ${isMastered ? '<div class="debug-info-row"><span style="color: #10b981; font-weight: bold;">✓ MASTERED</span></div>' : ''}
+                `;
+            }
+
             currentCard.innerHTML = `
                 <div class="debug-card-info">
                     <span class="debug-char">${this.currentChar.character}</span>
@@ -972,6 +1133,7 @@ class ChineseCharacterApp {
                 </div>
                 ${progress ? `
                     ${masteryStatus ? `<div class="debug-info-row"><span>Status:</span> ${masteryStatus}</div>` : ''}
+                    ${scoreInfo}
                     <div class="debug-info-row">
                         <span>Reviews:</span> <strong>${progress.reviewCount}</strong>
                     </div>
@@ -1004,6 +1166,97 @@ class ChineseCharacterApp {
     showUpcomingCards() {
         const upcomingDiv = document.getElementById('debugUpcomingCards');
         let html = '';
+
+        // Show batch contents if using ScoreDistributionAlgorithm
+        if (this.algorithm.name === 'Score Distribution') {
+            const batchCards = this.algorithm.getActiveBatch(this.userProgress);
+
+            html += '<h4 style="margin-bottom: 10px; color: #667eea;">Active Batch Cards:</h4>';
+
+            if (batchCards.length === 0) {
+                html += '<div style="padding: 10px; color: #999; font-style: italic;">Batch is empty</div>';
+            } else {
+                // Sort by score (highest first - needs most practice)
+                batchCards.sort((a, b) => b.score - a.score);
+
+                html += batchCards.map((item, idx) => {
+                    const char = this.characters[item.index];
+                    const progress = item.progress;
+
+                    const score = item.score;
+                    const displayScore = -score; // Flip sign for display
+                    const scoreColor = score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981';
+                    const scoreBadge = `<span style="background: ${scoreColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Score: ${displayScore}</span>`;
+
+                    return `
+                        <div class="debug-upcoming-card" style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea;">
+                            <span class="debug-upcoming-number">${idx + 1}.</span>
+                            <span class="debug-char-small">${char.character}</span>
+                            <span class="debug-pinyin">${char.pinyin}</span>
+                            <span class="debug-stats">
+                                ${progress.reviewCount} reviews | ${scoreBadge}
+                            </span>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            html += '<h4 style="margin: 20px 0 10px; color: #667eea;">All Cards (Sorted by Score):</h4>';
+
+            // Show all cards sorted by score
+            const allCards = [];
+            for (let i = 0; i < this.characters.length; i++) {
+                const progress = this.userProgress[i];
+                const score = this.algorithm.getCardScore(progress);
+                const inBatch = progress && progress.inBatch;
+                allCards.push({
+                    char: this.characters[i],
+                    index: i,
+                    score: score,
+                    progress: progress,
+                    inBatch: inBatch
+                });
+            }
+
+            // Sort by score (highest first)
+            allCards.sort((a, b) => b.score - a.score);
+
+            html += '<div style="max-height: 400px; overflow-y: auto;">';
+            html += allCards.map((item, idx) => {
+                const score = item.score;
+                const displayScore = -score; // Flip sign for display
+                const scoreColor = score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : score <= this.algorithm.config.masteryThreshold ? '#10b981' : '#9ca3af';
+                const isMastered = score <= this.algorithm.config.masteryThreshold;
+
+                let badges = '';
+                if (item.inBatch) {
+                    badges += '<span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">IN BATCH</span>';
+                }
+                if (isMastered) {
+                    badges += '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">✓ MASTERED</span>';
+                }
+                if (!item.progress) {
+                    badges += '<span style="background: #9ca3af; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">NEW</span>';
+                }
+
+                return `
+                    <div class="debug-upcoming-card" style="padding: 4px 8px;">
+                        <span class="debug-upcoming-number">${idx + 1}.</span>
+                        <span class="debug-char-small">${item.char.character}</span>
+                        <span class="debug-pinyin" style="font-size: 12px;">${item.char.pinyin}</span>
+                        <span class="debug-stats" style="font-size: 11px;">
+                            <span style="background: ${scoreColor}; color: white; padding: 2px 6px; border-radius: 4px;">Score: ${displayScore}</span>
+                            ${item.progress ? `${item.progress.reviewCount} reviews` : '0 reviews'}
+                            ${badges}
+                        </span>
+                    </div>
+                `;
+            }).join('');
+            html += '</div>';
+
+            upcomingDiv.innerHTML = html;
+            return; // Exit early for Score Distribution
+        }
 
         // Show bucket contents if using Bucket algorithm
         if (this.algorithm.name === 'Bucket Learning') {

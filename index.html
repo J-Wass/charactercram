@@ -35,13 +35,16 @@
                     <div class="canvas-container">
                         <h3>Your Attempt</h3>
                         <div class="canvas-area">
-                            <canvas id="drawingCanvas" width="300" height="300"></canvas>
+                            <canvas id="drawingCanvas" width="600" height="300"></canvas>
                             <button id="clearBtn" class="clear-x-btn" title="Clear">×</button>
                         </div>
                     </div>
                     <div id="answerContainer" class="canvas-container hidden">
                         <h3>Correct Stroke Order</h3>
-                        <img id="strokeGif" src="" alt="Stroke order animation">
+                        <div class="gif-container">
+                            <img id="strokeGif1" class="stroke-gif" src="" alt="Stroke order animation">
+                            <img id="strokeGif2" class="stroke-gif hidden" src="" alt="Stroke order animation">
+                        </div>
                     </div>
                 </div>
                 
@@ -152,7 +155,7 @@
         </div>
     </div>
 
-    <script src="chars_data.js"></script>
+    <script src="chars_data top_100.js"></script>
     <script src="algorithms.js"></script>
     <script src="app.js"></script>
 

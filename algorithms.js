@@ -624,13 +624,190 @@ class BucketAlgorithm extends BaseAlgorithm {
     }
 }
 
+// ===== SCORE DISTRIBUTION ALGORITHM =====
+// Weighted random selection based on card scores with batch management
+class ScoreDistributionAlgorithm extends BaseAlgorithm {
+    constructor() {
+        super();
+        this.name = 'Score Distribution';
+
+        this.config = {
+            batchSize: 5,              // Number of cards in active batch
+            masteryThreshold: -5,      // Score needed to graduate from batch
+            initialScore: 0,           // Starting score for new cards
+        };
+    }
+
+    /**
+     * Get or initialize score for a card
+     */
+    getCardScore(progress) {
+        if (!progress) return this.config.initialScore;
+        return progress.score !== undefined ? progress.score : this.config.initialScore;
+    }
+
+    /**
+     * Update card score based on difficulty rating
+     * Feedback 1: +5 points (no idea - needs lots of practice)
+     * Feedback 2: +3 points (hard - needs practice)
+     * Feedback 3: +1 point (almost - needs a bit more)
+     * Feedback 4: -1 points (easy - a bit easier)
+     * Feedback 5: -3 point (instant - much easier)
+     */
+    updateScore(currentScore, difficulty) {
+        const scoreChanges = {
+            1: 5,   // No idea - increase score significantly
+            2: 3,   // Hard - increase score moderately
+            3: 1,   // Almost - increase score slightly
+            4: -1,   // Easy - slightly netter
+            5: -3   // Instant - definitely
+        };
+
+        return currentScore + (scoreChanges[difficulty] || 0);
+    }
+
+    /**
+     * Get cards currently in the active batch
+     */
+    getActiveBatch(userProgress) {
+        const batchCards = [];
+
+        for (const [index, progress] of Object.entries(userProgress)) {
+            // Check if card should be in batch (has inBatch flag and score > threshold)
+            if (progress && progress.inBatch === true && this.getCardScore(progress) > this.config.masteryThreshold) {
+                batchCards.push({
+                    index: parseInt(index),
+                    score: this.getCardScore(progress),
+                    progress
+                });
+            }
+        }
+
+        return batchCards;
+    }
+
+    /**
+     * Weighted random selection - higher scores more likely to be selected
+     */
+    weightedRandomSelect(items, getWeight) {
+        if (items.length === 0) return null;
+        if (items.length === 1) return items[0];
+
+        // Calculate weights (higher score = higher weight)
+        // Add offset to make all weights positive
+        const minScore = Math.min(...items.map(item => getWeight(item)));
+        const offset = minScore < 0 ? Math.abs(minScore) + 1 : 0;
+
+        const weights = items.map(item => {
+            const weight = getWeight(item) + offset;
+            return Math.max(weight, 0.1); // Ensure minimum weight
+        });
+
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        let random = Math.random() * totalWeight;
+
+        for (let i = 0; i < items.length; i++) {
+            random -= weights[i];
+            if (random <= 0) {
+                return items[i];
+            }
+        }
+
+        return items[items.length - 1];
+    }
+
+    /**
+     * Main card selection logic
+     */
+    getNextCard(characters, userProgress, state) {
+        const batchCards = this.getActiveBatch(userProgress);
+
+        // Check if batch needs to be filled
+        if (batchCards.length < this.config.batchSize) {
+            // Find candidates to add to batch (cards not in batch and not mastered)
+            const candidates = [];
+
+            for (let i = 0; i < characters.length; i++) {
+                const progress = userProgress[i];
+                const score = this.getCardScore(progress);
+
+                // Include if: never seen OR seen but not in batch and not mastered
+                if (!progress || (!progress.inBatch && score > this.config.masteryThreshold)) {
+                    candidates.push({
+                        char: characters[i],
+                        index: i,
+                        score: score
+                    });
+                }
+            }
+
+            // Add a new card to batch using weighted selection (higher scores more likely)
+            if (candidates.length > 0) {
+                const selected = this.weightedRandomSelect(candidates, item => item.score);
+                return {
+                    char: selected.char,
+                    index: selected.index,
+                    addToBatch: true,
+                    isNew: !userProgress[selected.index]
+                };
+            }
+        }
+
+        // Select from active batch using weighted random (higher scores more likely)
+        if (batchCards.length > 0) {
+            const selected = this.weightedRandomSelect(batchCards, item => item.score);
+            return {
+                char: characters[selected.index],
+                index: selected.index
+            };
+        }
+
+        // Fallback: return first card
+        return {
+            char: characters[0],
+            index: 0,
+            addToBatch: true,
+            isNew: true
+        };
+    }
+
+    /**
+     * Not used for scheduling in this algorithm (score-based, not time-based)
+     */
+    calculateInitialInterval(difficulty) {
+        return 1000; // Placeholder
+    }
+
+    /**
+     * Not used for scheduling in this algorithm (score-based, not time-based)
+     */
+    calculateNextInterval(difficulty, currentInterval, successRate) {
+        return 1000; // Placeholder
+    }
+
+    /**
+     * Cards with difficulty 1-2 are considered failed
+     */
+    isCardFailed(difficulty) {
+        return difficulty <= 2;
+    }
+
+    /**
+     * Cards with difficulty 3+ are considered correct
+     */
+    isCardCorrect(difficulty) {
+        return difficulty >= 3;
+    }
+}
+
 // Export the algorithms
 const ALGORITHMS = {
     improved: ImprovedSSRAlgorithm,
     anki: AnkiAlgorithm,
     aggressive: AggressiveAlgorithm,
     mastery: MasteryBasedAlgorithm,
-    bucket: BucketAlgorithm
+    bucket: BucketAlgorithm,
+    score: ScoreDistributionAlgorithm
 };
 
 // Factory function to create algorithm instances
