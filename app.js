@@ -15,6 +15,14 @@ class ChineseCharacterApp {
         this.hasBackground = false;
         this.charCount = 1;  // Track number of characters in current word (1 or 2)
 
+        // Stroke tracking for undo functionality
+        this.strokes = [];  // Array of completed strokes
+        this.currentStroke = [];  // Current stroke being drawn
+
+        // Speech synthesis
+        this.speechSynth = window.speechSynthesis;
+        this.chineseVoice = null;
+
         // Initialize the algorithm
         this.currentAlgorithmType = algorithmType;
         this.algorithm = createAlgorithm(algorithmType);
@@ -62,11 +70,66 @@ class ChineseCharacterApp {
         };
     }
 
+    // Load Chinese voice for text-to-speech
+    loadChineseVoice() {
+        if (!this.speechSynth) return;
+
+        // Wait for voices to be loaded
+        const loadVoices = () => {
+            const voices = this.speechSynth.getVoices();
+
+            // Try to find a Chinese voice (prioritize zh-CN, then any zh variant)
+            this.chineseVoice = voices.find(voice => voice.lang.startsWith('zh-CN')) ||
+                                voices.find(voice => voice.lang.startsWith('zh')) ||
+                                voices.find(voice => voice.lang.includes('Chinese')) ||
+                                voices[0]; // Fallback to first available voice
+
+            console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+            if (this.chineseVoice) {
+                console.log('Selected voice:', this.chineseVoice.name, this.chineseVoice.lang);
+            }
+        };
+
+        // Load voices (some browsers load asynchronously)
+        loadVoices();
+        if (this.speechSynth.onvoiceschanged !== undefined) {
+            this.speechSynth.onvoiceschanged = loadVoices;
+        }
+    }
+
+    // Play sound for current character
+    playSound() {
+        if (!this.speechSynth || !this.currentChar) return;
+
+        // Cancel any ongoing speech
+        this.speechSynth.cancel();
+
+        // Create utterance with the Chinese character
+        const utterance = new SpeechSynthesisUtterance(this.currentChar.character);
+
+        // Set language to Chinese
+        utterance.lang = 'zh-CN';
+
+        // Use Chinese voice if available
+        if (this.chineseVoice) {
+            utterance.voice = this.chineseVoice;
+        }
+
+        // Adjust speech parameters for better clarity
+        utterance.rate = 0.8;  // Slightly slower for learning
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        // Speak
+        this.speechSynth.speak(utterance);
+    }
+
     async init() {
         await this.loadCharacters();
         this.setupCanvas();
         this.setupEventListeners();
         this.setupDebugModal();
+        this.loadChineseVoice();
 
         // Initialize set for FocusedSetsAlgorithm
         if (this.algorithm.name === 'Focused Sets' && this.algorithm.initializeSet) {
@@ -168,6 +231,9 @@ class ChineseCharacterApp {
             this.lastX = x;
             this.lastY = y;
 
+            // Start a new stroke
+            this.currentStroke = [{x, y}];
+
             this.ctx.beginPath();
             this.ctx.moveTo(x, y);
         });
@@ -182,6 +248,9 @@ class ChineseCharacterApp {
             const scaleY = this.canvas.height / rect.height;
             const x = (touch.clientX - rect.left) * scaleX;
             const y = (touch.clientY - rect.top) * scaleY;
+
+            // Add point to current stroke
+            this.currentStroke.push({x, y});
 
             // Use quadratic curves for smoother lines
             const midX = (this.lastX + x) / 2;
@@ -201,6 +270,11 @@ class ChineseCharacterApp {
     }
 
     clearCanvas() {
+        // Clear strokes array
+        this.strokes = [];
+        this.currentStroke = [];
+        this.updateUndoButton();
+
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw guide lines
@@ -291,6 +365,9 @@ class ChineseCharacterApp {
         this.lastX = x;
         this.lastY = y;
 
+        // Start a new stroke
+        this.currentStroke = [{x, y}];
+
         this.ctx.beginPath();
         this.ctx.moveTo(x, y);
     }
@@ -304,6 +381,9 @@ class ChineseCharacterApp {
         const x = (e.clientX - rect.left) * scaleX;
         const y = (e.clientY - rect.top) * scaleY;
 
+        // Add point to current stroke
+        this.currentStroke.push({x, y});
+
         // Use quadratic curves for smoother lines
         const midX = (this.lastX + x) / 2;
         const midY = (this.lastY + y) / 2;
@@ -316,13 +396,149 @@ class ChineseCharacterApp {
     }
 
     stopDrawing() {
+        if (this.isDrawing && this.currentStroke.length > 0) {
+            // Save the completed stroke
+            this.strokes.push([...this.currentStroke]);
+            this.currentStroke = [];
+            this.updateUndoButton();
+        }
         this.isDrawing = false;
+    }
+
+    undo() {
+        if (this.strokes.length === 0) return;
+
+        // Remove the last stroke
+        this.strokes.pop();
+
+        // Redraw all remaining strokes
+        this.redrawStrokes();
+
+        // Update undo button state
+        this.updateUndoButton();
+    }
+
+    redrawStrokes() {
+        // Clear the canvas completely
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Redraw guide lines
+        this.ctx.strokeStyle = '#ddd';
+        this.ctx.lineWidth = 1;
+
+        if (this.charCount === 2) {
+            // For 2 characters: draw guide lines for each half
+            const halfWidth = this.canvas.width / 2;
+
+            // Left character guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth / 2, 0);
+            this.ctx.lineTo(halfWidth / 2, this.canvas.height);
+            this.ctx.moveTo(0, this.canvas.height / 2);
+            this.ctx.lineTo(halfWidth, this.canvas.height / 2);
+            this.ctx.stroke();
+
+            // Left diagonal guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(halfWidth, this.canvas.height);
+            this.ctx.moveTo(halfWidth, 0);
+            this.ctx.lineTo(0, this.canvas.height);
+            this.ctx.stroke();
+
+            // Right character guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth + halfWidth / 2, 0);
+            this.ctx.lineTo(halfWidth + halfWidth / 2, this.canvas.height);
+            this.ctx.moveTo(halfWidth, this.canvas.height / 2);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+            this.ctx.stroke();
+
+            // Right diagonal guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth, 0);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height);
+            this.ctx.moveTo(this.canvas.width, 0);
+            this.ctx.lineTo(halfWidth, this.canvas.height);
+            this.ctx.stroke();
+
+            // Subtle vertical divider
+            this.ctx.strokeStyle = '#e5e5e5';
+            this.ctx.lineWidth = 2;
+            this.ctx.beginPath();
+            this.ctx.moveTo(halfWidth, 0);
+            this.ctx.lineTo(halfWidth, this.canvas.height);
+            this.ctx.stroke();
+            this.ctx.strokeStyle = '#ddd';
+            this.ctx.lineWidth = 1;
+        } else {
+            // For 1 character: draw centered guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.canvas.width / 2, 0);
+            this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);
+            this.ctx.moveTo(0, this.canvas.height / 2);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height / 2);
+            this.ctx.stroke();
+
+            // Draw diagonal guides
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, 0);
+            this.ctx.lineTo(this.canvas.width, this.canvas.height);
+            this.ctx.moveTo(this.canvas.width, 0);
+            this.ctx.lineTo(0, this.canvas.height);
+            this.ctx.stroke();
+        }
+
+        // Draw border
+        this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Reset drawing style for calligraphy
+        this.ctx.strokeStyle = '#2d3748';
+        this.ctx.lineWidth = 10;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+
+        // Redraw all strokes
+        for (const stroke of this.strokes) {
+            if (stroke.length === 0) continue;
+
+            this.ctx.beginPath();
+            this.ctx.moveTo(stroke[0].x, stroke[0].y);
+
+            for (let i = 1; i < stroke.length; i++) {
+                const prevPoint = stroke[i - 1];
+                const currPoint = stroke[i];
+                const midX = (prevPoint.x + currPoint.x) / 2;
+                const midY = (prevPoint.y + currPoint.y) / 2;
+
+                this.ctx.quadraticCurveTo(prevPoint.x, prevPoint.y, midX, midY);
+            }
+
+            this.ctx.stroke();
+        }
+    }
+
+    updateUndoButton() {
+        const undoBtn = document.getElementById('undoBtn');
+        if (undoBtn) {
+            undoBtn.disabled = this.strokes.length === 0;
+        }
     }
 
     setupEventListeners() {
         // Clear button
         document.getElementById('clearBtn').addEventListener('click', () => {
             this.clearCanvas();
+        });
+
+        // Undo button
+        document.getElementById('undoBtn').addEventListener('click', () => {
+            this.undo();
+        });
+
+        // Sound button
+        document.getElementById('soundBtn').addEventListener('click', () => {
+            this.playSound();
         });
 
         // Show answer button
@@ -415,6 +631,26 @@ class ChineseCharacterApp {
         // Detect if character field contains 1 or 2 characters
         this.charCount = this.currentChar.character.length;
 
+        // Adjust canvas dimensions based on character count
+        if (this.charCount === 1) {
+            // Square canvas for 1 character
+            this.canvas.width = 300;
+            this.canvas.height = 300;
+        } else {
+            // Rectangular canvas for 2 characters
+            this.canvas.width = 600;
+            this.canvas.height = 300;
+        }
+
+        // Reset drawing style after canvas resize (resizing resets context)
+        this.ctx.lineWidth = 10;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.strokeStyle = '#2d3748';
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.imageSmoothingEnabled = true;
+        this.ctx.imageSmoothingQuality = 'high';
+
         // Update UI
         document.getElementById('pinyin').textContent = this.currentChar.pinyin || 'N/A';
         document.getElementById('english').textContent = this.currentChar.definition || 'No definition';
@@ -430,6 +666,11 @@ class ChineseCharacterApp {
         // Clear canvas and remove background
         this.removeCanvasBackground();
         this.clearCanvas();
+
+        // Play sound (autoplay - may fail on iOS/mobile without user interaction)
+        setTimeout(() => {
+            this.playSound();
+        }, 300);
 
         // Force scroll to the top
         setTimeout(() => {

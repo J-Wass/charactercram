@@ -24,7 +24,10 @@
         <div class="game-area">
             <div class="prompt-section">
                 <div class="prompt-info">
-                    <h2 id="pinyin" class="pinyin">Loading...</h2>
+                    <div class="pinyin-container">
+                        <h2 id="pinyin" class="pinyin">Loading...</h2>
+                        <button id="soundBtn" class="sound-btn" title="Play sound">🔊</button>
+                    </div>
                     <p id="english" class="english">Please wait...</p>
                 </div>
 
@@ -36,6 +39,7 @@
                         <h3>Your Attempt</h3>
                         <div class="canvas-area">
                             <canvas id="drawingCanvas" width="600" height="300"></canvas>
+                            <button id="undoBtn" class="undo-btn" title="Undo">↶</button>
                             <button id="clearBtn" class="clear-x-btn" title="Clear">×</button>
                         </div>
                     </div>

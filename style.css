@@ -44,10 +44,41 @@ body {
     transition: background 0.3s ease;
 }
 
+.pinyin-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+}
+
 .pinyin {
     font-size: 2.5em;
     margin-bottom: 10px;
     font-weight: 300;
+}
+
+.sound-btn {
+    background: rgba(255, 255, 255, 0.2);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.sound-btn:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.1);
+}
+
+.sound-btn:active {
+    transform: scale(0.95);
 }
 
 .english {
@@ -399,15 +430,50 @@ body {
     height: auto;
 }
 
-.clear-x-btn {
+.undo-btn {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: -45px;
+    right: 53px;
     width: 40px;
     height: 40px;
     border-radius: 50%;
     background: #ffffff75;
-    color: #d1d5db;
+    color: #60a0ff;
+    border: none;
+    font-size: 50px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    font-weight: normal;
+}
+
+.undo-btn:hover {
+    color: #9ca3af;
+    transform: scale(1.1);
+}
+
+.undo-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.undo-btn:disabled:hover {
+    transform: none;
+}
+
+.clear-x-btn {
+    position: absolute;
+    top: -40px;
+    right: 10px;
+    width: 40px;
+    height: 40px; 
+    border-radius: 50%;
+    background: #ffffff75;
+    color:#822929;
     border: none;
     font-size: 48px;
     line-height: 1;
@@ -435,7 +501,7 @@ body {
 .stroke-gif {
     width: 300px;
     height: 300px;
-    border: 2px solid #ddd;
+    border: 0;
     border-radius: 10px;
     background: white;
 }
@@ -877,6 +943,12 @@ body {
 
     .pinyin {
         font-size: 2em;
+    }
+
+    .sound-btn {
+        width: 45px;
+        height: 45px;
+        font-size: 20px;
     }
 
     .english {
