@@ -1,7 +1,7 @@
 // Simplified Chinese Character Practice App with Anki-like Spaced Repetition
 
 class ChineseCharacterApp {
-    constructor(algorithmType = 'score') {  // Using ScoreDistributionAlgorithm
+    constructor(algorithmType = 'score') {  // Using FocusedSetsAlgorithm
         this.characters = [];
         this.currentChar = null;
         this.currentCharIndex = null;
@@ -66,9 +66,44 @@ class ChineseCharacterApp {
         await this.loadCharacters();
         this.setupCanvas();
         this.setupEventListeners();
-        this.setupStatsModal();
         this.setupDebugModal();
-        this.updateStats();
+
+        // Initialize set for FocusedSetsAlgorithm
+        if (this.algorithm.name === 'Focused Sets' && this.algorithm.initializeSet) {
+            const initialSetIndices = this.algorithm.initializeSet(this.characters, this.userProgress);
+
+            // Add initial cards to userProgress
+            const now = Date.now();
+            for (const index of initialSetIndices) {
+                if (!this.userProgress[index]) {
+                    this.userProgress[index] = {
+                        character: this.characters[index].character,
+                        firstSeen: now,
+                        reviewCount: 0,
+                        successCount: 0,
+                        successRate: 0,
+                        lastDifficulty: null,
+                        lastSeen: now,
+                        nextReview: now,
+                        interval: 1000,
+                        history: [],
+                        consecutiveGood: 0,
+                        wasUnmastered: false,
+                        masteredAt: null,
+                        inBucket: false,
+                        inSet: true,
+                        setEntryScore: 0,
+                        score: 0
+                    };
+                }
+            }
+
+            if (initialSetIndices.length > 0) {
+                this.saveProgress();
+                console.log(`Initialized set with ${initialSetIndices.length} cards`);
+            }
+        }
+
         this.startNewRound();
     }
 
@@ -479,11 +514,13 @@ class ChineseCharacterApp {
             // First time seeing this card
             const initialInterval = this.algorithm.calculateInitialInterval(difficulty);
 
-            // Initialize score for ScoreDistributionAlgorithm
+            // Initialize score for FocusedSetsAlgorithm
             let initialScore = 0;
-            if (this.algorithm.name === 'Score Distribution' && this.algorithm.config) {
+            if (this.algorithm.name === 'Focused Sets' && this.algorithm.config) {
                 initialScore = this.algorithm.config.initialScore;
             }
+
+            const isAddingToSet = this.currentResult && this.currentResult.addToSet;
 
             this.userProgress[index] = {
                 character: this.currentChar.character,
@@ -503,18 +540,19 @@ class ChineseCharacterApp {
                 masteredAt: null,
                 // Bucket tracking (for Bucket algorithm)
                 inBucket: this.currentResult && this.currentResult.addToBucket ? true : false,
-                // Batch tracking (for ScoreDistributionAlgorithm)
-                inBatch: this.currentResult && this.currentResult.addToBatch ? true : false,
-                // Score tracking (for ScoreDistributionAlgorithm)
+                // Set tracking (for FocusedSetsAlgorithm)
+                inSet: isAddingToSet,
+                setEntryScore: isAddingToSet ? initialScore : undefined,
+                // Score tracking (for FocusedSetsAlgorithm)
                 score: initialScore
             };
 
-            // Update score for ScoreDistributionAlgorithm
-            if (this.algorithm.name === 'Score Distribution' && this.algorithm.updateScore) {
+            // Update score for FocusedSetsAlgorithm
+            if (this.algorithm.name === 'Focused Sets' && this.algorithm.updateScore) {
                 this.userProgress[index].score = this.algorithm.updateScore(initialScore, difficulty);
 
-                if (this.userProgress[index].inBatch) {
-                    console.log(`Card ${this.currentChar.character} added to batch! Score: ${this.userProgress[index].score}`);
+                if (this.userProgress[index].inSet) {
+                    console.log(`Card ${this.currentChar.character} added to set! Entry score: ${this.userProgress[index].setEntryScore}, New score: ${this.userProgress[index].score}`);
                 }
             }
         } else {
@@ -581,15 +619,28 @@ class ChineseCharacterApp {
                 progress.targetReviewPosition = targetReviewPosition;
             }
 
-            // Update score for ScoreDistributionAlgorithm
-            if (this.algorithm.name === 'Score Distribution' && this.algorithm.updateScore) {
+            // Update score for FocusedSetsAlgorithm
+            if (this.algorithm.name === 'Focused Sets' && this.algorithm.updateScore) {
                 const currentScore = progress.score !== undefined ? progress.score : this.algorithm.config.initialScore;
+                const oldScore = currentScore;
                 progress.score = this.algorithm.updateScore(currentScore, difficulty);
 
-                // Remove from batch if mastered (score <= threshold)
-                if (progress.score <= this.algorithm.config.masteryThreshold && progress.inBatch) {
-                    progress.inBatch = false;
-                    console.log(`Card ${this.currentChar.character} mastered! Score: ${progress.score}`);
+                // Check if this card is being added to the set
+                if (this.currentResult && this.currentResult.addToSet && !progress.inSet) {
+                    progress.inSet = true;
+                    progress.setEntryScore = oldScore; // Track score when entering set
+                    console.log(`Card ${this.currentChar.character} added to set! Entry score: ${progress.setEntryScore}`);
+                }
+
+                // Remove from set if score became lower than entry score (card got easier)
+                if (progress.inSet && progress.setEntryScore !== undefined) {
+                    if (progress.score < progress.setEntryScore) {
+                        progress.inSet = false;
+                        console.log(`Card ${this.currentChar.character} graduated from set! Score improved from ${progress.setEntryScore} to ${progress.score}`);
+
+                        // Immediately backfill the set with a new card
+                        this.backfillSet();
+                    }
                 }
             }
         }
@@ -598,7 +649,6 @@ class ChineseCharacterApp {
         this.algorithmState.todayReviews++;
 
         this.saveProgress();
-        this.updateStats();
     }
 
 
@@ -720,6 +770,63 @@ class ChineseCharacterApp {
         requestAnimationFrame(animation);
     }
 
+    backfillSet() {
+        // Only for Focused Sets algorithm
+        if (this.algorithm.name !== 'Focused Sets') return;
+
+        // Find candidates to add to set (cards not currently in set)
+        const candidates = [];
+        for (let i = 0; i < this.characters.length; i++) {
+            const progress = this.userProgress[i];
+
+            // Skip if already in set
+            if (progress && progress.inSet === true) continue;
+
+            const score = this.algorithm.getCardScore(progress);
+            candidates.push({
+                char: this.characters[i],
+                index: i,
+                score: score
+            });
+        }
+
+        // Add a new card to set using weighted selection
+        if (candidates.length > 0) {
+            const selected = this.algorithm.weightedRandomSelect(candidates, item => item.score);
+            const now = Date.now();
+
+            // Create or update progress for the new card
+            if (!this.userProgress[selected.index]) {
+                this.userProgress[selected.index] = {
+                    character: this.characters[selected.index].character,
+                    firstSeen: now,
+                    reviewCount: 0,
+                    successCount: 0,
+                    successRate: 0,
+                    lastDifficulty: null,
+                    lastSeen: now,
+                    nextReview: now,
+                    interval: 1000,
+                    history: [],
+                    consecutiveGood: 0,
+                    wasUnmastered: false,
+                    masteredAt: null,
+                    inBucket: false,
+                    inSet: true,
+                    setEntryScore: selected.score,
+                    score: selected.score
+                };
+            } else {
+                // Card already exists, just add to set
+                this.userProgress[selected.index].inSet = true;
+                this.userProgress[selected.index].setEntryScore = selected.score;
+            }
+
+            this.saveProgress();
+            console.log(`Backfilled set with card: ${this.characters[selected.index].character} (entry score: ${selected.score})`);
+        }
+    }
+
     saveProgress() {
         localStorage.setItem('chineseCharProgress', JSON.stringify(this.userProgress));
     }
@@ -727,279 +834,6 @@ class ChineseCharacterApp {
     loadProgress() {
         const saved = localStorage.getItem('chineseCharProgress');
         return saved ? JSON.parse(saved) : {};
-    }
-
-    // Stats methods
-    setupStatsModal() {
-        const cornerBtn = document.getElementById('statsCornerBtn');
-        const modal = document.getElementById('statsModal');
-        const closeBtn = document.getElementById('statsCloseBtn');
-        const searchInput = document.getElementById('charSearchInput');
-        const searchResults = document.getElementById('searchResults');
-
-        // Open modal
-        cornerBtn.addEventListener('click', () => {
-            modal.classList.add('open');
-            this.updateStats(); // Update stats when opening
-            searchInput.value = ''; // Clear search on open
-            searchResults.innerHTML = '';
-        });
-
-        // Close modal
-        closeBtn.addEventListener('click', () => {
-            modal.classList.remove('open');
-        });
-
-        // Close on background click
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('open');
-            }
-        });
-
-        // Close on ESC key
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && modal.classList.contains('open')) {
-                modal.classList.remove('open');
-            }
-        });
-
-        // Setup search functionality
-        let searchTimeout;
-        searchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            const query = e.target.value.trim().toLowerCase();
-
-            if (query.length === 0) {
-                searchResults.innerHTML = '';
-                return;
-            }
-
-            // Debounce search
-            searchTimeout = setTimeout(() => {
-                this.searchCharacters(query);
-            }, 300);
-        });
-    }
-
-    searchCharacters(query) {
-        const searchResults = document.getElementById('searchResults');
-        const matches = [];
-
-        // Normalize query for better matching
-        const normalizedQuery = query.toLowerCase().trim();
-
-        // Search through all characters
-        for (let i = 0; i < this.characters.length; i++) {
-            const char = this.characters[i];
-
-            // Normalize pinyin for comparison (remove tones/accents)
-            const normalizedPinyin = char.pinyin.toLowerCase()
-                .normalize('NFD')
-                .replace(/[\u0300-\u036f]/g, ''); // Remove diacritical marks
-
-            // Search in character, pinyin, and definition
-            let matchScore = 0;
-            let isMatch = false;
-
-            // Exact character match gets highest base score
-            if (char.character === normalizedQuery) {
-                matchScore = 1000;
-                isMatch = true;
-            }
-            // Exact pinyin match (without tones)
-            else if (normalizedPinyin === normalizedQuery) {
-                matchScore = 900;
-                isMatch = true;
-            }
-            // Exact pinyin match (with tones)
-            else if (char.pinyin.toLowerCase() === normalizedQuery) {
-                matchScore = 850;
-                isMatch = true;
-            }
-            // Partial pinyin match (without tones)
-            else if (normalizedPinyin.includes(normalizedQuery)) {
-                matchScore = 450;
-                isMatch = true;
-            }
-            // Partial pinyin match (with tones)
-            else if (char.pinyin.toLowerCase().includes(normalizedQuery)) {
-                matchScore = 400;
-                isMatch = true;
-            }
-            // Definition match - check for whole word matches for better accuracy
-            else if (char.definition) {
-                const defLower = char.definition.toLowerCase();
-
-                // Check for exact word match (surrounded by word boundaries)
-                const wordRegex = new RegExp(`\\b${normalizedQuery}\\b`, 'i');
-                if (wordRegex.test(char.definition)) {
-                    matchScore = 300; // Higher score for whole word match
-                    isMatch = true;
-                }
-                // Check for "I" specifically - match characters that mean "I/me"
-                else if (normalizedQuery === 'i' &&
-                         (defLower.includes('i;') ||
-                          defLower.includes('i,') ||
-                          defLower.includes('i ') ||
-                          defLower === 'i' ||
-                          defLower.includes('me;') ||
-                          defLower.includes('me,') ||
-                          defLower.includes('me ') ||
-                          defLower === 'me')) {
-                    matchScore = 350; // Boost for pronoun matches
-                    isMatch = true;
-                }
-                // Partial definition match
-                else if (defLower.includes(normalizedQuery)) {
-                    matchScore = 200;
-                    isMatch = true;
-                }
-            }
-
-            if (isMatch) {
-                // Boost score based on study status and frequency
-                const progress = this.userProgress[i];
-
-                // Studied characters get a boost (users likely want to review these)
-                if (progress) {
-                    matchScore += 100;
-                    // Additional boost for recently studied
-                    if (progress.reviewCount > 0 && progress.reviewCount < 5) {
-                        matchScore += 50;
-                    }
-                }
-
-                // Boost common characters (lower frequency rank = more common)
-                // Normalize frequency rank (1-9900) to score (0-100)
-                const freqScore = Math.max(0, 100 - (char.frequency_rank / 100));
-                matchScore += freqScore;
-
-                matches.push({
-                    char: char,
-                    index: i,
-                    progress: progress,
-                    score: matchScore
-                });
-            }
-        }
-
-        // Sort by score (highest first)
-        matches.sort((a, b) => b.score - a.score);
-
-        // Limit to top 20 results
-        const topMatches = matches.slice(0, 20);
-
-        // Display results
-        if (topMatches.length === 0) {
-            searchResults.innerHTML = '<div class="search-no-results">No characters found</div>';
-        } else {
-            searchResults.innerHTML = topMatches.map(match => {
-                const masteryText = match.progress ?
-                    `${match.progress.reviewCount} reviews, ${Math.round(match.progress.successRate * 100)}% success` :
-                    'Not studied yet';
-
-                const freqText = `Word Freq #${match.char.frequency_rank}`;
-
-                const studiedClass = match.progress ? 'studied' : '';
-                return `
-                    <div class="search-result-item ${studiedClass}" data-index="${match.index}">
-                        <div class="search-result-char">${match.char.character}</div>
-                        <div class="search-result-info">
-                            <div class="search-result-pinyin">${match.char.pinyin}</div>
-                            <div class="search-result-meaning">${match.char.definition || 'No definition'}</div>
-                            <div class="search-result-meaning" style="font-size: 0.8em; margin-top: 5px; color: #999;">
-                                ${masteryText} • ${freqText}
-                            </div>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-
-            // Add click handlers to practice specific character
-            searchResults.querySelectorAll('.search-result-item').forEach(item => {
-                item.addEventListener('click', () => {
-                    const index = parseInt(item.dataset.index);
-                    this.practiceSpecificCharacter(index);
-                    document.getElementById('statsModal').classList.remove('open');
-                });
-            });
-        }
-    }
-
-    practiceSpecificCharacter(index) {
-        // Set the current character to the selected one
-        this.currentChar = this.characters[index];
-        this.currentCharIndex = index;
-
-        // Update UI
-        document.getElementById('pinyin').textContent = this.currentChar.pinyin || 'N/A';
-        document.getElementById('english').textContent = this.currentChar.definition || 'No definition';
-
-        // Hide answer and show drawing canvas
-        document.getElementById('answerContainer').classList.add('hidden');
-        document.getElementById('difficultySection').classList.add('hidden');
-        document.getElementById('showAnswerBtn').style.display = 'block';
-
-        // Clear canvas
-        this.clearCanvas();
-    }
-
-    updateStats() {
-        const totalLearned = Object.keys(this.userProgress).length;
-        const totalCards = this.characters.length;
-        const now = Date.now();
-        const todayEnd = new Date().setHours(23, 59, 59, 999);
-
-        // Calculate mastered and nearly mastered cards
-        let masteredCount = 0;
-        let nearlyMasteredCount = 0;
-        let dueTodayCount = 0;
-
-        for (const [index, progress] of Object.entries(this.userProgress)) {
-            // Mastered: 80%+ success rate with 3+ reviews
-            if (progress.successRate >= 0.8 && progress.reviewCount >= 3) {
-                masteredCount++;
-            }
-            // Nearly mastered: 60-79% success rate OR exactly 2 reviews with good performance
-            else if ((progress.successRate >= 0.6 && progress.successRate < 0.8 && progress.reviewCount >= 2) ||
-                     (progress.reviewCount === 2 && progress.successRate >= 0.5)) {
-                nearlyMasteredCount++;
-            }
-
-            // Due today: cards that need review before end of today
-            if (progress.nextReview && progress.nextReview <= todayEnd) {
-                dueTodayCount++;
-            }
-        }
-
-        // Update DOM
-        const learnedElement = document.getElementById('totalLearned');
-        const prevLearned = parseInt(learnedElement.textContent) || 0;
-        learnedElement.textContent = totalLearned;
-
-        // Animate milestone achievements
-        if (totalLearned > prevLearned && totalLearned % 10 === 0) {
-            learnedElement.classList.add('milestone');
-            setTimeout(() => learnedElement.classList.remove('milestone'), 500);
-        }
-
-        document.getElementById('mastered').textContent = masteredCount;
-        document.getElementById('nearlyMastered').textContent = nearlyMasteredCount;
-        document.getElementById('dueToday').textContent = dueTodayCount;
-    }
-
-    getTodayReviewCount() {
-        const todayStart = new Date().setHours(0, 0, 0, 0);
-        let count = 0;
-
-        for (const progress of Object.values(this.userProgress)) {
-            if (progress.lastSeen >= todayStart) {
-                count++;
-            }
-        }
-
-        return count;
     }
 
     // Debug methods
@@ -1046,24 +880,13 @@ class ChineseCharacterApp {
             `;
         }
 
-        // Get batch info for ScoreDistributionAlgorithm
-        if (this.algorithm.name === 'Score Distribution') {
-            const batchCards = this.algorithm.getActiveBatch(this.userProgress);
-            const masteredCount = Object.values(this.userProgress).filter(p =>
-                p.score !== undefined && p.score <= this.algorithm.config.masteryThreshold
-            ).length;
-
-            const displayThreshold = -this.algorithm.config.masteryThreshold; // Flip sign for display
+        // Get set info for FocusedSetsAlgorithm
+        if (this.algorithm.name === 'Focused Sets') {
+            const setCards = this.algorithm.getActiveSet(this.userProgress);
 
             bucketInfo = `
                 <div class="debug-info-row">
-                    <span>Active Batch:</span> <strong>${batchCards.length} / ${this.algorithm.config.batchSize}</strong>
-                </div>
-                <div class="debug-info-row">
-                    <span>Mastered Cards:</span> <strong>${masteredCount}</strong>
-                </div>
-                <div class="debug-info-row">
-                    <span>Mastery Threshold:</span> <strong>≥ ${displayThreshold}</strong>
+                    <span>Active Set:</span> <strong>${setCards.length} / ${this.algorithm.config.setSize}</strong>
                 </div>
             `;
         }
@@ -1106,22 +929,27 @@ class ChineseCharacterApp {
                 }
             }
 
-            // Check status for ScoreDistributionAlgorithm
+            // Check status for FocusedSetsAlgorithm
             let scoreInfo = '';
-            if (this.algorithm.name === 'Score Distribution' && progress) {
+            if (this.algorithm.name === 'Focused Sets' && progress) {
                 const score = progress.score !== undefined ? progress.score : 0;
                 const displayScore = -score; // Flip sign for display
-                const inBatch = progress.inBatch ? 'Yes' : 'No';
-                const isMastered = score <= this.algorithm.config.masteryThreshold;
+                const inSet = progress.inSet ? 'Yes' : 'No';
+                const entryScore = progress.setEntryScore !== undefined ? progress.setEntryScore : 'N/A';
+                const displayEntryScore = progress.setEntryScore !== undefined ? -progress.setEntryScore : 'N/A';
 
                 scoreInfo = `
                     <div class="debug-info-row">
-                        <span>Score:</span> <strong style="color: ${isMastered ? '#10b981' : score > 3 ? '#ef4444' : '#f59e0b'};">${displayScore}</strong>
+                        <span>Score:</span> <strong style="color: ${score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981'};">${displayScore}</strong>
                     </div>
                     <div class="debug-info-row">
-                        <span>In Batch:</span> <strong>${inBatch}</strong>
+                        <span>In Set:</span> <strong>${inSet}</strong>
                     </div>
-                    ${isMastered ? '<div class="debug-info-row"><span style="color: #10b981; font-weight: bold;">✓ MASTERED</span></div>' : ''}
+                    ${progress.setEntryScore !== undefined ? `
+                        <div class="debug-info-row">
+                            <span>Entry Score:</span> <strong>${displayEntryScore}</strong>
+                        </div>
+                    ` : ''}
                 `;
             }
 
@@ -1167,19 +995,19 @@ class ChineseCharacterApp {
         const upcomingDiv = document.getElementById('debugUpcomingCards');
         let html = '';
 
-        // Show batch contents if using ScoreDistributionAlgorithm
-        if (this.algorithm.name === 'Score Distribution') {
-            const batchCards = this.algorithm.getActiveBatch(this.userProgress);
+        // Show set contents if using FocusedSetsAlgorithm
+        if (this.algorithm.name === 'Focused Sets') {
+            const setCards = this.algorithm.getActiveSet(this.userProgress);
 
-            html += '<h4 style="margin-bottom: 10px; color: #667eea;">Active Batch Cards:</h4>';
+            html += '<h4 style="margin-bottom: 10px; color: #667eea;">Active Set Cards:</h4>';
 
-            if (batchCards.length === 0) {
-                html += '<div style="padding: 10px; color: #999; font-style: italic;">Batch is empty</div>';
+            if (setCards.length === 0) {
+                html += '<div style="padding: 10px; color: #999; font-style: italic;">Set is empty</div>';
             } else {
                 // Sort by score (highest first - needs most practice)
-                batchCards.sort((a, b) => b.score - a.score);
+                setCards.sort((a, b) => b.score - a.score);
 
-                html += batchCards.map((item, idx) => {
+                html += setCards.map((item, idx) => {
                     const char = this.characters[item.index];
                     const progress = item.progress;
 
@@ -1208,13 +1036,13 @@ class ChineseCharacterApp {
             for (let i = 0; i < this.characters.length; i++) {
                 const progress = this.userProgress[i];
                 const score = this.algorithm.getCardScore(progress);
-                const inBatch = progress && progress.inBatch;
+                const inSet = progress && progress.inSet;
                 allCards.push({
                     char: this.characters[i],
                     index: i,
                     score: score,
                     progress: progress,
-                    inBatch: inBatch
+                    inSet: inSet
                 });
             }
 
@@ -1225,15 +1053,11 @@ class ChineseCharacterApp {
             html += allCards.map((item, idx) => {
                 const score = item.score;
                 const displayScore = -score; // Flip sign for display
-                const scoreColor = score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : score <= this.algorithm.config.masteryThreshold ? '#10b981' : '#9ca3af';
-                const isMastered = score <= this.algorithm.config.masteryThreshold;
+                const scoreColor = score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981';
 
                 let badges = '';
-                if (item.inBatch) {
-                    badges += '<span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">IN BATCH</span>';
-                }
-                if (isMastered) {
-                    badges += '<span style="background: #10b981; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">✓ MASTERED</span>';
+                if (item.inSet) {
+                    badges += '<span style="background: #667eea; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">IN SET</span>';
                 }
                 if (!item.progress) {
                     badges += '<span style="background: #9ca3af; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 4px;">NEW</span>';
@@ -1255,7 +1079,7 @@ class ChineseCharacterApp {
             html += '</div>';
 
             upcomingDiv.innerHTML = html;
-            return; // Exit early for Score Distribution
+            return; // Exit early for Focused Sets
         }
 
         // Show bucket contents if using Bucket algorithm

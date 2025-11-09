@@ -624,16 +624,21 @@ class BucketAlgorithm extends BaseAlgorithm {
     }
 }
 
-// ===== SCORE DISTRIBUTION ALGORITHM =====
-// Weighted random selection based on card scores with batch management
-class ScoreDistributionAlgorithm extends BaseAlgorithm {
+// ===== FOCUSED SETS ALGORITHM =====
+// Weighted random selection based on card scores with set management
+// Rules:
+// - User only sees 5 cards from the active set
+// - Cards selected for set are weighted by score (higher score = more likely)
+// - If card's score becomes LOWER than when it entered set, it graduates (got easier)
+// - Cards that get harder (No Idea ratings) stay in set for more practice
+// - Set is automatically backfilled with new weighted-random cards
+class FocusedSetsAlgorithm extends BaseAlgorithm {
     constructor() {
         super();
-        this.name = 'Score Distribution';
+        this.name = 'Focused Sets';
 
         this.config = {
-            batchSize: 5,              // Number of cards in active batch
-            masteryThreshold: -5,      // Score needed to graduate from batch
+            setSize: 5,                // Number of cards in active set
             initialScore: 0,           // Starting score for new cards
         };
     }
@@ -651,39 +656,80 @@ class ScoreDistributionAlgorithm extends BaseAlgorithm {
      * Feedback 1: +5 points (no idea - needs lots of practice)
      * Feedback 2: +3 points (hard - needs practice)
      * Feedback 3: +1 point (almost - needs a bit more)
-     * Feedback 4: -1 points (easy - a bit easier)
-     * Feedback 5: -3 point (instant - much easier)
+     * Feedback 4: -1 points (easy - getting better)
+     * Feedback 5: -3 points (instant - mastered)
      */
     updateScore(currentScore, difficulty) {
         const scoreChanges = {
             1: 5,   // No idea - increase score significantly
             2: 3,   // Hard - increase score moderately
             3: 1,   // Almost - increase score slightly
-            4: -1,   // Easy - slightly netter
-            5: -3   // Instant - definitely
+            4: -1,  // Easy - getting better
+            5: -3   // Instant - mastered
         };
 
         return currentScore + (scoreChanges[difficulty] || 0);
     }
 
     /**
-     * Get cards currently in the active batch
+     * Initialize the set with 5 cards on first load
+     * Returns array of indices to add to set
      */
-    getActiveBatch(userProgress) {
-        const batchCards = [];
+    initializeSet(characters, userProgress) {
+        // Check if set already has cards
+        const existingSet = this.getActiveSet(userProgress);
+        if (existingSet.length > 0) {
+            return []; // Already initialized
+        }
+
+        // Build list of all cards not in set
+        const candidates = [];
+        for (let i = 0; i < characters.length; i++) {
+            const progress = userProgress[i];
+            if (progress && progress.inSet === true) continue; // Skip cards already in set
+
+            const score = this.getCardScore(progress);
+            candidates.push({
+                index: i,
+                score: score
+            });
+        }
+
+        // Select 5 cards using weighted random
+        const selectedIndices = [];
+        for (let i = 0; i < Math.min(this.config.setSize, candidates.length); i++) {
+            if (candidates.length === 0) break;
+
+            const selected = this.weightedRandomSelect(candidates, item => item.score);
+            selectedIndices.push(selected.index);
+
+            // Remove selected card from candidates
+            const selectedIdx = candidates.findIndex(c => c.index === selected.index);
+            candidates.splice(selectedIdx, 1);
+        }
+
+        return selectedIndices;
+    }
+
+    /**
+     * Get cards currently in the active set
+     */
+    getActiveSet(userProgress) {
+        const setCards = [];
 
         for (const [index, progress] of Object.entries(userProgress)) {
-            // Check if card should be in batch (has inBatch flag and score > threshold)
-            if (progress && progress.inBatch === true && this.getCardScore(progress) > this.config.masteryThreshold) {
-                batchCards.push({
+            // Card is in set if it has the inSet flag
+            if (progress && progress.inSet === true) {
+                setCards.push({
                     index: parseInt(index),
                     score: this.getCardScore(progress),
+                    entryScore: progress.setEntryScore,
                     progress
                 });
             }
         }
 
-        return batchCards;
+        return setCards;
     }
 
     /**
@@ -718,55 +764,57 @@ class ScoreDistributionAlgorithm extends BaseAlgorithm {
 
     /**
      * Main card selection logic
+     * Always shows cards from the set, backfills when needed
      */
     getNextCard(characters, userProgress, state) {
-        const batchCards = this.getActiveBatch(userProgress);
+        const setCards = this.getActiveSet(userProgress);
 
-        // Check if batch needs to be filled
-        if (batchCards.length < this.config.batchSize) {
-            // Find candidates to add to batch (cards not in batch and not mastered)
+        // If set is not full, backfill with a new card
+        if (setCards.length < this.config.setSize) {
+            // Find candidates to add to set (cards not currently in set)
             const candidates = [];
 
             for (let i = 0; i < characters.length; i++) {
                 const progress = userProgress[i];
-                const score = this.getCardScore(progress);
 
-                // Include if: never seen OR seen but not in batch and not mastered
-                if (!progress || (!progress.inBatch && score > this.config.masteryThreshold)) {
-                    candidates.push({
-                        char: characters[i],
-                        index: i,
-                        score: score
-                    });
-                }
+                // Skip if already in set
+                if (progress && progress.inSet === true) continue;
+
+                const score = this.getCardScore(progress);
+                candidates.push({
+                    char: characters[i],
+                    index: i,
+                    score: score
+                });
             }
 
-            // Add a new card to batch using weighted selection (higher scores more likely)
+            // Add a new card to set using weighted selection (higher scores more likely)
             if (candidates.length > 0) {
                 const selected = this.weightedRandomSelect(candidates, item => item.score);
                 return {
                     char: selected.char,
                     index: selected.index,
-                    addToBatch: true,
+                    addToSet: true,
                     isNew: !userProgress[selected.index]
                 };
             }
         }
 
-        // Select from active batch using weighted random (higher scores more likely)
-        if (batchCards.length > 0) {
-            const selected = this.weightedRandomSelect(batchCards, item => item.score);
+        // Select randomly from active set (equal probability for variety)
+        if (setCards.length > 0) {
+            const randomIndex = Math.floor(Math.random() * setCards.length);
+            const selected = setCards[randomIndex];
             return {
                 char: characters[selected.index],
                 index: selected.index
             };
         }
 
-        // Fallback: return first card
+        // Fallback: return first card and add to set
         return {
             char: characters[0],
             index: 0,
-            addToBatch: true,
+            addToSet: true,
             isNew: true
         };
     }
@@ -807,7 +855,7 @@ const ALGORITHMS = {
     aggressive: AggressiveAlgorithm,
     mastery: MasteryBasedAlgorithm,
     bucket: BucketAlgorithm,
-    score: ScoreDistributionAlgorithm
+    score: FocusedSetsAlgorithm
 };
 
 // Factory function to create algorithm instances
