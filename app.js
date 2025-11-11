@@ -78,15 +78,22 @@ class ChineseCharacterApp {
         const loadVoices = () => {
             const voices = this.speechSynth.getVoices();
 
-            // Try to find a Chinese voice (prioritize zh-CN, then any zh variant)
-            this.chineseVoice = voices.find(voice => voice.lang.startsWith('zh-CN')) ||
-                                voices.find(voice => voice.lang.startsWith('zh')) ||
-                                voices.find(voice => voice.lang.includes('Chinese')) ||
-                                voices[0]; // Fallback to first available voice
-
             console.log('Available voices:', voices.map(v => `${v.name} (${v.lang})`));
+
+            // Try to find a Chinese voice (be very specific)
+            this.chineseVoice = voices.find(voice => voice.lang === 'zh-CN') ||
+                                voices.find(voice => voice.lang === 'zh-TW') ||
+                                voices.find(voice => voice.lang === 'zh-HK') ||
+                                voices.find(voice => voice.lang.startsWith('zh-CN')) ||
+                                voices.find(voice => voice.lang.startsWith('zh-')) ||
+                                voices.find(voice => voice.lang.toLowerCase().includes('chinese')) ||
+                                voices.find(voice => voice.name.toLowerCase().includes('chinese')) ||
+                                null; // Don't fallback to random voice - let browser choose
+
             if (this.chineseVoice) {
                 console.log('Selected voice:', this.chineseVoice.name, this.chineseVoice.lang);
+            } else {
+                console.log('No Chinese voice found - using browser default for zh-CN');
             }
         };
 
@@ -112,12 +119,15 @@ class ChineseCharacterApp {
                 // Create utterance with the Chinese character
                 const utterance = new SpeechSynthesisUtterance(this.currentChar.character);
 
-                // Set language to Chinese
+                // Set language to Chinese (MUST be set before voice)
                 utterance.lang = 'zh-CN';
 
-                // Use Chinese voice if available
+                // Use Chinese voice ONLY if we found a proper Chinese voice
                 if (this.chineseVoice) {
                     utterance.voice = this.chineseVoice;
+                    console.log('Using voice:', this.chineseVoice.name, this.chineseVoice.lang);
+                } else {
+                    console.log('Using browser default voice for zh-CN');
                 }
 
                 // Adjust speech parameters for better clarity

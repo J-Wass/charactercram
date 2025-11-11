@@ -438,21 +438,26 @@ body {
     height: 40px;
     min-width: 40px;
     min-height: 40px;
+    max-width: 40px;
+    max-height: 40px;
     border-radius: 50%;
     background: #ffffff75;
     color: #60a0ff;
     border: none;
-    font-size: 32px;
-    line-height: 1;
+    font-size: 24px;
+    line-height: 40px;
     cursor: pointer;
     transition: all 0.3s;
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 0;
+    margin: 0;
     font-weight: normal;
-    aspect-ratio: 1;
+    aspect-ratio: 1 / 1;
     flex-shrink: 0;
+    overflow: hidden;
+    box-sizing: border-box;
 }
 
 .undo-btn:hover {
