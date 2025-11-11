@@ -170,15 +170,15 @@ const CHINESE_CHARACTERS = [
   },
   { character: "请", pinyin: "qǐng", definition: "please", frequency_rank: 42 },
   {
-    character: "对不起",
-    pinyin: "duìbuqǐ",
+    character: "抱歉",
+    pinyin: "bàoqiàn",
     definition: "sorry",
     frequency_rank: 43,
   },
   {
-    character: "没关系",
-    pinyin: "méiguānxi",
-    definition: "it’s okay",
+    character: "没事",
+    pinyin: "méishì",
+    definition: "it's okay",
     frequency_rank: 44,
   },
 
@@ -272,8 +272,8 @@ const CHINESE_CHARACTERS = [
     frequency_rank: 62,
   },
   {
-    character: "出租车",
-    pinyin: "chūzūchē",
+    character: "的士",
+    pinyin: "díshì",
     definition: "taxi",
     frequency_rank: 63,
   },
@@ -365,8 +365,8 @@ const CHINESE_CHARACTERS = [
     frequency_rank: 88,
   },
   {
-    character: "一点儿",
-    pinyin: "yìdiǎnr",
+    character: "一点",
+    pinyin: "yīdiǎn",
     definition: "a little; a bit",
     frequency_rank: 89,
   },

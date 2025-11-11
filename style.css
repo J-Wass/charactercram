@@ -436,11 +436,13 @@ body {
     right: 53px;
     width: 40px;
     height: 40px;
+    min-width: 40px;
+    min-height: 40px;
     border-radius: 50%;
     background: #ffffff75;
     color: #60a0ff;
     border: none;
-    font-size: 50px;
+    font-size: 32px;
     line-height: 1;
     cursor: pointer;
     transition: all 0.3s;
@@ -449,6 +451,8 @@ body {
     justify-content: center;
     padding: 0;
     font-weight: normal;
+    aspect-ratio: 1;
+    flex-shrink: 0;
 }
 
 .undo-btn:hover {

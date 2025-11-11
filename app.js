@@ -101,27 +101,51 @@ class ChineseCharacterApp {
     playSound() {
         if (!this.speechSynth || !this.currentChar) return;
 
-        // Cancel any ongoing speech
-        this.speechSynth.cancel();
+        try {
+            // Firefox/Linux fix: Wait a bit before canceling to avoid garbled audio
+            if (this.speechSynth.speaking) {
+                this.speechSynth.cancel();
+            }
 
-        // Create utterance with the Chinese character
-        const utterance = new SpeechSynthesisUtterance(this.currentChar.character);
+            // Small delay to let cancel complete (Firefox issue)
+            setTimeout(() => {
+                // Create utterance with the Chinese character
+                const utterance = new SpeechSynthesisUtterance(this.currentChar.character);
 
-        // Set language to Chinese
-        utterance.lang = 'zh-CN';
+                // Set language to Chinese
+                utterance.lang = 'zh-CN';
 
-        // Use Chinese voice if available
-        if (this.chineseVoice) {
-            utterance.voice = this.chineseVoice;
+                // Use Chinese voice if available
+                if (this.chineseVoice) {
+                    utterance.voice = this.chineseVoice;
+                }
+
+                // Adjust speech parameters for better clarity
+                utterance.rate = 0.9;  // Slightly slower for learning
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+
+                // Add error handling
+                utterance.onerror = (event) => {
+                    console.error('Speech synthesis error:', event);
+                };
+
+                utterance.onstart = () => {
+                    console.log('Speech started');
+                };
+
+                utterance.onend = () => {
+                    console.log('Speech ended');
+                };
+
+                // Speak
+                this.speechSynth.speak(utterance);
+
+            }, 50); // Small delay for Firefox/Linux
+
+        } catch (error) {
+            console.error('Error playing sound:', error);
         }
-
-        // Adjust speech parameters for better clarity
-        utterance.rate = 0.8;  // Slightly slower for learning
-        utterance.pitch = 1;
-        utterance.volume = 1;
-
-        // Speak
-        this.speechSynth.speak(utterance);
     }
 
     async init() {
