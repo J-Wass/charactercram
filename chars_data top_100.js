@@ -170,9 +170,9 @@ const CHINESE_CHARACTERS = [
   },
   { character: "请", pinyin: "qǐng", definition: "please", frequency_rank: 42 },
   {
-    character: "抱歉",
-    pinyin: "bàoqiàn",
-    definition: "sorry",
+    character: "人",
+    pinyin: "rén",
+    definition: "people",
     frequency_rank: 43,
   },
   {

@@ -19,6 +19,9 @@ class ChineseCharacterApp {
         this.strokes = [];  // Array of completed strokes
         this.currentStroke = [];  // Current stroke being drawn
 
+        // Track loaded images for cleanup
+        this.backgroundImages = [];  // Array to store background Image objects for cleanup
+
         // Speech synthesis
         this.speechSynth = window.speechSynthesis;
         this.chineseVoice = null;
@@ -235,7 +238,7 @@ class ChineseCharacterApp {
         this.ctx.lineWidth = 10;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
-        this.ctx.strokeStyle = '#2d3748';
+        this.ctx.strokeStyle = '#d4d7dc';
         this.ctx.globalCompositeOperation = 'source-over';
 
         // Enable smoothing for better line quality
@@ -312,7 +315,7 @@ class ChineseCharacterApp {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Draw guide lines
-        this.ctx.strokeStyle = '#ddd';
+        this.ctx.strokeStyle = '#4a4f5c';
         this.ctx.lineWidth = 1;
 
         if (this.charCount === 2) {
@@ -352,13 +355,13 @@ class ChineseCharacterApp {
             this.ctx.stroke();
 
             // Subtle vertical divider
-            this.ctx.strokeStyle = '#e5e5e5';
+            this.ctx.strokeStyle = '#555b6a';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.moveTo(halfWidth, 0);
             this.ctx.lineTo(halfWidth, this.canvas.height);
             this.ctx.stroke();
-            this.ctx.strokeStyle = '#ddd';
+            this.ctx.strokeStyle = '#4a4f5c';
             this.ctx.lineWidth = 1;
         } else {
             // For 1 character: draw centered guides (same as before)
@@ -382,7 +385,7 @@ class ChineseCharacterApp {
         this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Reset drawing style for calligraphy
-        this.ctx.strokeStyle = '#2d3748';
+        this.ctx.strokeStyle = '#d4d7dc';
         this.ctx.lineWidth = 10;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
@@ -457,7 +460,7 @@ class ChineseCharacterApp {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Redraw guide lines
-        this.ctx.strokeStyle = '#ddd';
+        this.ctx.strokeStyle = '#4a4f5c';
         this.ctx.lineWidth = 1;
 
         if (this.charCount === 2) {
@@ -497,13 +500,13 @@ class ChineseCharacterApp {
             this.ctx.stroke();
 
             // Subtle vertical divider
-            this.ctx.strokeStyle = '#e5e5e5';
+            this.ctx.strokeStyle = '#555b6a';
             this.ctx.lineWidth = 2;
             this.ctx.beginPath();
             this.ctx.moveTo(halfWidth, 0);
             this.ctx.lineTo(halfWidth, this.canvas.height);
             this.ctx.stroke();
-            this.ctx.strokeStyle = '#ddd';
+            this.ctx.strokeStyle = '#4a4f5c';
             this.ctx.lineWidth = 1;
         } else {
             // For 1 character: draw centered guides
@@ -527,7 +530,7 @@ class ChineseCharacterApp {
         this.ctx.strokeRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Reset drawing style for calligraphy
-        this.ctx.strokeStyle = '#2d3748';
+        this.ctx.strokeStyle = '#d4d7dc';
         this.ctx.lineWidth = 10;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
@@ -680,7 +683,7 @@ class ChineseCharacterApp {
         this.ctx.lineWidth = 10;
         this.ctx.lineCap = 'round';
         this.ctx.lineJoin = 'round';
-        this.ctx.strokeStyle = '#2d3748';
+        this.ctx.strokeStyle = '#d4d7dc';
         this.ctx.globalCompositeOperation = 'source-over';
         this.ctx.imageSmoothingEnabled = true;
         this.ctx.imageSmoothingQuality = 'high';
@@ -697,9 +700,15 @@ class ChineseCharacterApp {
         document.querySelector('.canvas-controls').style.display = 'flex';
         document.getElementById('showAnswerBtn').style.display = 'inline-block';
 
-        // Clear canvas and remove background
+        // Clean up previous GIFs and canvas to free memory
+        this.cleanupGifs();
         this.removeCanvasBackground();
         this.clearCanvas();
+
+        // Cancel any ongoing speech synthesis to free resources
+        if (this.speechSynth && this.speechSynth.speaking) {
+            this.speechSynth.cancel();
+        }
 
         // Play sound (autoplay - may fail on iOS/mobile without user interaction)
         setTimeout(() => {
@@ -990,12 +999,34 @@ class ChineseCharacterApp {
             this.hasBackground = true;
         };
         img.src = gifSrc;
+        // Store image reference for cleanup
+        this.backgroundImages.push(img);
     }
 
     removeCanvasBackground() {
         if (this.hasBackground) {
             this.clearCanvas();
             this.hasBackground = false;
+        }
+        // Clean up background Image objects
+        this.backgroundImages.forEach(img => {
+            img.onload = null;
+            img.src = '';
+        });
+        this.backgroundImages = [];
+    }
+
+    cleanupGifs() {
+        // Clear GIF sources to free memory (important for iOS)
+        const gif1 = document.getElementById('strokeGif1');
+        const gif2 = document.getElementById('strokeGif2');
+        if (gif1) {
+            gif1.src = '';
+            gif1.classList.add('hidden');
+        }
+        if (gif2) {
+            gif2.src = '';
+            gif2.classList.add('hidden');
         }
     }
 
@@ -1231,7 +1262,7 @@ class ChineseCharacterApp {
             currentCard.innerHTML = `
                 <div class="debug-card-info">
                     <span class="debug-char">${this.currentChar.character}</span>
-                    <span>${this.currentChar.pinyin}</span>
+                    <span class="debug-pinyin">${this.currentChar.pinyin}</span>
                     <span class="debug-small">${this.currentChar.definition}</span>
                 </div>
                 ${progress ? `
