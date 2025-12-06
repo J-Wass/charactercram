@@ -848,6 +848,253 @@ class FocusedSetsAlgorithm extends BaseAlgorithm {
     }
 }
 
+// ===== KNOWN SET ALGORITHM =====
+// Maintains a growing set of known cards with weighted selection
+// Rules:
+// - Set starts with 5 cards and can grow to 100
+// - Only cards from the known set are shown
+// - Cards instantly recognized are shown less often (lower weight)
+// - Difficult cards are shown more often (higher weight)
+// - New cards added randomly, more likely when set is well-known
+// - New cards follow frequency rank order
+class KnownSetAlgorithm extends BaseAlgorithm {
+    constructor() {
+        super();
+        this.name = 'Known Set';
+
+        this.config = {
+            setSize: 5,                 // Start with 5 cards
+            maxSetSize: 100,            // Can grow to all 100 words
+            addCardThreshold: 0.7,      // Base probability to add new card
+            setMasteryBonus: 0.3,       // Bonus probability when set is well-known
+            minReviewsPerCard: 3        // Min reviews before considering adding new card
+        };
+    }
+
+    /**
+     * Get or initialize score for a card in the known set
+     * Higher score = more difficult = shown more often
+     */
+    getCardScore(progress) {
+        if (!progress) return 5; // New cards start with high score
+        return progress.score !== undefined ? progress.score : 5;
+    }
+
+    /**
+     * Update card score based on difficulty rating
+     * Feedback 1: +5 points (no idea)
+     * Feedback 2: +3 points (hard)
+     * Feedback 3: +1 point (almost)
+     * Feedback 4: -1 point (easy)
+     * Feedback 5: -3 points (instant)
+     */
+    updateScore(currentScore, difficulty) {
+        const scoreChanges = {
+            1: 5,   // No idea
+            2: 3,   // Hard
+            3: 1,   // Almost
+            4: -1,  // Easy
+            5: -3   // Instant
+        };
+
+        return currentScore + (scoreChanges[difficulty] || 0);
+    }
+
+    /**
+     * Get cards currently in the known set
+     */
+    getKnownSet(userProgress) {
+        const setCards = [];
+
+        for (const [index, progress] of Object.entries(userProgress)) {
+            if (progress && progress.inSet === true) {
+                setCards.push({
+                    index: parseInt(index),
+                    score: this.getCardScore(progress),
+                    progress
+                });
+            }
+        }
+
+        return setCards;
+    }
+
+    /**
+     * Calculate how well the known set is mastered
+     * Returns 0.0 (not mastered) to 1.0 (fully mastered)
+     */
+    calculateSetMastery(setCards) {
+        if (setCards.length === 0) return 0;
+
+        let totalMastery = 0;
+        let cardsWithEnoughReviews = 0;
+
+        for (const card of setCards) {
+            const progress = card.progress;
+
+            // Cards need minimum reviews to count
+            if (!progress || progress.reviewCount < this.config.minReviewsPerCard) {
+                continue;
+            }
+
+            cardsWithEnoughReviews++;
+
+            // Calculate mastery based on score (lower score = more mastered)
+            // Score typically ranges from -10 (mastered) to +15 (difficult)
+            // Normalize to 0-1 range
+            const normalizedScore = Math.max(0, Math.min(1, (10 - card.score) / 20));
+            totalMastery += normalizedScore;
+        }
+
+        if (cardsWithEnoughReviews === 0) return 0;
+
+        const averageMastery = totalMastery / cardsWithEnoughReviews;
+        return averageMastery;
+    }
+
+    /**
+     * Should we add a new card to the set?
+     * More likely when set is well mastered
+     */
+    shouldAddNewCard(setCards) {
+        // Always add if set is not at starting size
+        if (setCards.length < this.config.setSize) {
+            return true;
+        }
+
+        // Don't add if we've reached max size
+        if (setCards.length >= this.config.maxSetSize) {
+            return false;
+        }
+
+        // Calculate probability based on set mastery
+        const mastery = this.calculateSetMastery(setCards);
+        const probability = this.config.addCardThreshold + (mastery * this.config.setMasteryBonus);
+
+        return Math.random() < probability;
+    }
+
+    /**
+     * Find the next card to add following frequency rank
+     */
+    findNextCardByFrequency(characters, userProgress) {
+        // Find cards not in set, ordered by frequency rank
+        for (let i = 0; i < characters.length; i++) {
+            const progress = userProgress[i];
+
+            // Skip if already in set
+            if (progress && progress.inSet === true) continue;
+
+            // This card is not in set, and since characters are already
+            // sorted by frequency rank, this is the next one to add
+            return {
+                char: characters[i],
+                index: i,
+                isNew: !progress
+            };
+        }
+
+        return null; // All cards are in set
+    }
+
+    /**
+     * Weighted random selection based on card scores
+     * Higher score = more likely to be selected
+     */
+    weightedRandomSelect(setCards) {
+        if (setCards.length === 0) return null;
+        if (setCards.length === 1) return setCards[0];
+
+        // Calculate weights (higher score = higher weight)
+        // Add offset to ensure all weights are positive
+        const minScore = Math.min(...setCards.map(card => card.score));
+        const offset = minScore < 0 ? Math.abs(minScore) + 1 : 0;
+
+        const weights = setCards.map(card => {
+            const weight = card.score + offset;
+            return Math.max(weight, 0.1); // Ensure minimum weight
+        });
+
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+        let random = Math.random() * totalWeight;
+
+        for (let i = 0; i < setCards.length; i++) {
+            random -= weights[i];
+            if (random <= 0) {
+                return setCards[i];
+            }
+        }
+
+        return setCards[setCards.length - 1];
+    }
+
+    /**
+     * Main card selection logic
+     */
+    getNextCard(characters, userProgress, state) {
+        const setCards = this.getKnownSet(userProgress);
+
+        // Check if we should add a new card to the set
+        if (this.shouldAddNewCard(setCards)) {
+            const nextCard = this.findNextCardByFrequency(characters, userProgress);
+
+            if (nextCard) {
+                return {
+                    char: nextCard.char,
+                    index: nextCard.index,
+                    addToSet: true,
+                    isNew: nextCard.isNew
+                };
+            }
+        }
+
+        // Select from existing set using weighted random
+        if (setCards.length > 0) {
+            const selected = this.weightedRandomSelect(setCards);
+            return {
+                char: characters[selected.index],
+                index: selected.index
+            };
+        }
+
+        // Fallback: add first card to set
+        return {
+            char: characters[0],
+            index: 0,
+            addToSet: true,
+            isNew: true
+        };
+    }
+
+    /**
+     * Not used for scheduling (score-based)
+     */
+    calculateInitialInterval(difficulty) {
+        return 1000;
+    }
+
+    /**
+     * Not used for scheduling (score-based)
+     */
+    calculateNextInterval(difficulty, currentInterval, successRate) {
+        return 1000;
+    }
+
+    /**
+     * Cards with difficulty 1-2 are considered failed
+     */
+    isCardFailed(difficulty) {
+        return difficulty <= 2;
+    }
+
+    /**
+     * Cards with difficulty 3+ are considered correct
+     */
+    isCardCorrect(difficulty) {
+        return difficulty >= 3;
+    }
+}
+
 // Export the algorithms
 const ALGORITHMS = {
     improved: ImprovedSSRAlgorithm,
@@ -855,11 +1102,12 @@ const ALGORITHMS = {
     aggressive: AggressiveAlgorithm,
     mastery: MasteryBasedAlgorithm,
     bucket: BucketAlgorithm,
-    score: FocusedSetsAlgorithm
+    score: FocusedSetsAlgorithm,
+    knownSet: KnownSetAlgorithm
 };
 
 // Factory function to create algorithm instances
-function createAlgorithm(type = 'bucket') {
-    const AlgorithmClass = ALGORITHMS[type] || BucketAlgorithm;
+function createAlgorithm(type = 'knownSet') {
+    const AlgorithmClass = ALGORITHMS[type] || KnownSetAlgorithm;
     return new AlgorithmClass();
 }
