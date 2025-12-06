@@ -1,7 +1,7 @@
 // Simplified Chinese Character Practice App with Anki-like Spaced Repetition
 
 class ChineseCharacterApp {
-    constructor(algorithmType = 'score') {  // Using FocusedSetsAlgorithm
+    constructor(algorithmType = 'knownSet') {  // Using KnownSetAlgorithm
         this.characters = [];
         this.currentChar = null;
         this.currentCharIndex = null;
@@ -168,8 +168,8 @@ class ChineseCharacterApp {
         this.setupDebugModal();
         this.loadChineseVoice();
 
-        // Initialize set for FocusedSetsAlgorithm
-        if (this.algorithm.name === 'Focused Sets' && this.algorithm.initializeSet) {
+        // Initialize set for FocusedSetsAlgorithm and KnownSetAlgorithm
+        if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.initializeSet) {
             const initialSetIndices = this.algorithm.initializeSet(this.characters, this.userProgress);
 
             // Add initial cards to userProgress
@@ -798,9 +798,9 @@ class ChineseCharacterApp {
             // First time seeing this card
             const initialInterval = this.algorithm.calculateInitialInterval(difficulty);
 
-            // Initialize score for FocusedSetsAlgorithm
+            // Initialize score for FocusedSetsAlgorithm and KnownSetAlgorithm
             let initialScore = 0;
-            if (this.algorithm.name === 'Focused Sets' && this.algorithm.config) {
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.config) {
                 initialScore = this.algorithm.config.initialScore;
             }
 
@@ -831,8 +831,8 @@ class ChineseCharacterApp {
                 score: initialScore
             };
 
-            // Update score for FocusedSetsAlgorithm
-            if (this.algorithm.name === 'Focused Sets' && this.algorithm.updateScore) {
+            // Update score for FocusedSetsAlgorithm and KnownSetAlgorithm
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.updateScore) {
                 this.userProgress[index].score = this.algorithm.updateScore(initialScore, difficulty);
 
                 if (this.userProgress[index].inSet) {
@@ -903,8 +903,8 @@ class ChineseCharacterApp {
                 progress.targetReviewPosition = targetReviewPosition;
             }
 
-            // Update score for FocusedSetsAlgorithm
-            if (this.algorithm.name === 'Focused Sets' && this.algorithm.updateScore) {
+            // Update score for FocusedSetsAlgorithm and KnownSetAlgorithm
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.updateScore) {
                 const currentScore = progress.score !== undefined ? progress.score : this.algorithm.config.initialScore;
                 const oldScore = currentScore;
                 progress.score = this.algorithm.updateScore(currentScore, difficulty);
@@ -916,8 +916,9 @@ class ChineseCharacterApp {
                     console.log(`Card ${this.currentChar.character} added to set! Entry score: ${progress.setEntryScore}`);
                 }
 
-                // Remove from set if score became lower than entry score (card got easier)
-                if (progress.inSet && progress.setEntryScore !== undefined) {
+                // For Focused Sets: Remove from set if score became lower than entry score (card got easier)
+                // For Known Set: Cards stay in set, just shown with different frequency
+                if (this.algorithm.name === 'Focused Sets' && progress.inSet && progress.setEntryScore !== undefined) {
                     if (progress.score < progress.setEntryScore) {
                         progress.inSet = false;
                         console.log(`Card ${this.currentChar.character} graduated from set! Score improved from ${progress.setEntryScore} to ${progress.score}`);
@@ -1077,7 +1078,7 @@ class ChineseCharacterApp {
     }
 
     backfillSet() {
-        // Only for Focused Sets algorithm
+        // Only for Focused Sets algorithm (not Known Set - it manages its own set growth)
         if (this.algorithm.name !== 'Focused Sets') return;
 
         // Find candidates to add to set (cards not currently in set)
@@ -1186,13 +1187,13 @@ class ChineseCharacterApp {
             `;
         }
 
-        // Get set info for FocusedSetsAlgorithm
-        if (this.algorithm.name === 'Focused Sets') {
-            const setCards = this.algorithm.getActiveSet(this.userProgress);
+        // Get set info for FocusedSetsAlgorithm and KnownSetAlgorithm
+        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') {
+            const setCards = this.algorithm.getActiveSet ? this.algorithm.getActiveSet(this.userProgress) : this.algorithm.getKnownSet(this.userProgress);
 
             bucketInfo = `
                 <div class="debug-info-row">
-                    <span>Active Set:</span> <strong>${setCards.length} / ${this.algorithm.config.setSize}</strong>
+                    <span>Active Set:</span> <strong>${setCards.length} / ${this.algorithm.config.setSize || this.algorithm.config.maxSetSize}</strong>
                 </div>
             `;
         }
@@ -1235,9 +1236,9 @@ class ChineseCharacterApp {
                 }
             }
 
-            // Check status for FocusedSetsAlgorithm
+            // Check status for FocusedSetsAlgorithm and KnownSetAlgorithm
             let scoreInfo = '';
-            if (this.algorithm.name === 'Focused Sets' && progress) {
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && progress) {
                 const score = progress.score !== undefined ? progress.score : 0;
                 const displayScore = -score; // Flip sign for display
                 const inSet = progress.inSet ? 'Yes' : 'No';
@@ -1301,9 +1302,9 @@ class ChineseCharacterApp {
         const upcomingDiv = document.getElementById('debugUpcomingCards');
         let html = '';
 
-        // Show set contents if using FocusedSetsAlgorithm
-        if (this.algorithm.name === 'Focused Sets') {
-            const setCards = this.algorithm.getActiveSet(this.userProgress);
+        // Show set contents if using FocusedSetsAlgorithm or KnownSetAlgorithm
+        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') {
+            const setCards = this.algorithm.getActiveSet ? this.algorithm.getActiveSet(this.userProgress) : this.algorithm.getKnownSet(this.userProgress);
 
             html += '<h4 style="margin-bottom: 10px; color: #667eea;">Active Set Cards:</h4>';
 
