@@ -865,9 +865,10 @@ class KnownSetAlgorithm extends BaseAlgorithm {
         this.config = {
             setSize: 5,                 // Start with 5 cards
             maxSetSize: 100,            // Can grow to all 100 words
-            addCardThreshold: 0.7,      // Base probability to add new card
-            setMasteryBonus: 0.3,       // Bonus probability when set is well-known
-            minReviewsPerCard: 3        // Min reviews before considering adding new card
+            addCardThreshold: 0.0,      // No base probability - only add when mastered
+            setMasteryBonus: 0.6,       // Probability multiplier based on mastery
+            minReviewsPerCard: 3,       // Min reviews before considering adding new card
+            initialScore: 5             // Starting score for new cards
         };
     }
 

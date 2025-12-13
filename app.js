@@ -595,8 +595,33 @@ class ChineseCharacterApp {
                     4: '#84cc16', // Easy - lime
                     5: '#10b981'  // Very Easy - green
                 };
-                this.showToast(difficultyText, difficultyColors[difficulty]);
+
+                // Capture old score before recording
+                let oldScore;
+                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set')) {
+                    if (this.userProgress[this.currentCharIndex]) {
+                        oldScore = this.userProgress[this.currentCharIndex].score;
+                    } else {
+                        // For new cards, use the initial score
+                        oldScore = this.algorithm.config.initialScore;
+                    }
+                }
+
                 this.recordDifficulty(difficulty);
+
+                // Show toast with score if using score-based algorithm
+                let toastMessage = difficultyText;
+                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.userProgress[this.currentCharIndex]) {
+                    const score = this.userProgress[this.currentCharIndex].score;
+                    if (score !== undefined && oldScore !== undefined) {
+                        const displayScore = -score; // Flip sign for display (negative is good)
+                        const scoreDelta = -(score - oldScore);
+                        const deltaSign = scoreDelta > 0 ? '+' : '';
+                        toastMessage += ` • Score: ${displayScore} (${deltaSign}${scoreDelta})`;
+                    }
+                }
+                this.showToast(toastMessage, difficultyColors[difficulty]);
+
                 this.nextCharacter();
             });
         });
@@ -637,8 +662,33 @@ class ChineseCharacterApp {
                         4: '#84cc16', // Easy - lime
                         5: '#10b981'  // Very Easy - green
                     };
-                    this.showToast(difficultyNames[difficulty], difficultyColors[difficulty]);
+
+                    // Capture old score before recording
+                    let oldScore;
+                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set')) {
+                        if (this.userProgress[this.currentCharIndex]) {
+                            oldScore = this.userProgress[this.currentCharIndex].score;
+                        } else {
+                            // For new cards, use the initial score
+                            oldScore = this.algorithm.config.initialScore;
+                        }
+                    }
+
                     this.recordDifficulty(difficulty);
+
+                    // Show toast with score if using score-based algorithm
+                    let toastMessage = difficultyNames[difficulty];
+                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.userProgress[this.currentCharIndex]) {
+                        const score = this.userProgress[this.currentCharIndex].score;
+                        if (score !== undefined && oldScore !== undefined) {
+                            const displayScore = -score; // Flip sign for display (negative is good)
+                            const scoreDelta = -(score - oldScore);
+                            const deltaSign = scoreDelta > 0 ? '+' : '';
+                            toastMessage += ` • Score: ${displayScore} (${deltaSign}${scoreDelta})`;
+                        }
+                    }
+                    this.showToast(toastMessage, difficultyColors[difficulty]);
+
                     this.nextCharacter();
                 }
             }
@@ -691,6 +741,24 @@ class ChineseCharacterApp {
         // Update UI
         document.getElementById('pinyin').textContent = this.currentChar.pinyin || 'N/A';
         document.getElementById('english').textContent = this.currentChar.definition || 'No definition';
+
+        // Show/hide NEW badge for new cards
+        const pinyinContainer = document.querySelector('.pinyin-container');
+        let newBadge = pinyinContainer.querySelector('.new-badge');
+
+        const isNewCard = !this.userProgress[this.currentCharIndex];
+        if (isNewCard) {
+            if (!newBadge) {
+                newBadge = document.createElement('span');
+                newBadge.className = 'new-badge';
+                newBadge.textContent = 'NEW';
+                pinyinContainer.insertBefore(newBadge, pinyinContainer.firstChild);
+            }
+        } else {
+            if (newBadge) {
+                newBadge.remove();
+            }
+        }
 
         // Hide answer container and difficulty section
         document.getElementById('answerContainer').classList.add('hidden');
@@ -1143,6 +1211,56 @@ class ChineseCharacterApp {
         return saved ? JSON.parse(saved) : {};
     }
 
+    // Data management methods
+    exportData() {
+        const data = JSON.stringify(this.userProgress);
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chinese-char-progress-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        this.showToast('Data exported successfully!');
+    }
+
+    importData() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'application/json';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const imported = JSON.parse(event.target.result);
+                        this.userProgress = imported;
+                        this.saveProgress();
+                        this.showToast('Data imported successfully!');
+                        this.updateDebugInfo();
+                    } catch (error) {
+                        this.showToast('Error importing data: Invalid file format');
+                        console.error('Import error:', error);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        };
+        input.click();
+    }
+
+    clearData() {
+        if (confirm('Are you sure you want to clear all progress data? This action cannot be undone.')) {
+            this.userProgress = {};
+            this.saveProgress();
+            this.showToast('All data cleared!');
+            this.updateDebugInfo();
+        }
+    }
+
     // Debug methods
     setupDebugModal() {
         const debugBtn = document.getElementById('debugBtn');
@@ -1166,6 +1284,15 @@ class ChineseCharacterApp {
                 modal.classList.remove('open');
             }
         });
+
+        // Data management buttons
+        const exportBtn = document.getElementById('exportDataBtn');
+        const importBtn = document.getElementById('importDataBtn');
+        const clearBtn = document.getElementById('clearDataBtn');
+
+        exportBtn.addEventListener('click', () => this.exportData());
+        importBtn.addEventListener('click', () => this.importData());
+        clearBtn.addEventListener('click', () => this.clearData());
     }
 
     updateDebugInfo() {
