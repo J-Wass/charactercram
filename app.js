@@ -1,7 +1,7 @@
 // Simplified Chinese Character Practice App with Anki-like Spaced Repetition
 
 class ChineseCharacterApp {
-    constructor(algorithmType = 'knownSet') {  // Using KnownSetAlgorithm
+    constructor(algorithmType = 'rollingWindow') {  // Using RollingWindowAlgorithm
         this.characters = [];
         this.currentChar = null;
         this.currentCharIndex = null;
@@ -34,7 +34,8 @@ class ChineseCharacterApp {
         this.algorithmState = {
             recentFailedCards: new Set(),
             sessionCorrectStreak: 0,
-            todayReviews: 0
+            todayReviews: 0,
+            lastShownIndex: null
         };
 
         this.init();
@@ -169,7 +170,7 @@ class ChineseCharacterApp {
         this.loadChineseVoice();
 
         // Initialize set for FocusedSetsAlgorithm and KnownSetAlgorithm
-        if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.initializeSet) {
+        if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.algorithm.initializeSet) {
             const initialSetIndices = this.algorithm.initializeSet(this.characters, this.userProgress);
 
             // Add initial cards to userProgress
@@ -598,7 +599,7 @@ class ChineseCharacterApp {
 
                 // Capture old score before recording
                 let oldScore;
-                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set')) {
+                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window')) {
                     if (this.userProgress[this.currentCharIndex]) {
                         oldScore = this.userProgress[this.currentCharIndex].score;
                     } else {
@@ -611,7 +612,7 @@ class ChineseCharacterApp {
 
                 // Show toast with score if using score-based algorithm
                 let toastMessage = difficultyText;
-                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.userProgress[this.currentCharIndex]) {
+                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.userProgress[this.currentCharIndex]) {
                     const score = this.userProgress[this.currentCharIndex].score;
                     if (score !== undefined && oldScore !== undefined) {
                         const displayScore = -score; // Flip sign for display (negative is good)
@@ -665,7 +666,7 @@ class ChineseCharacterApp {
 
                     // Capture old score before recording
                     let oldScore;
-                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set')) {
+                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window')) {
                         if (this.userProgress[this.currentCharIndex]) {
                             oldScore = this.userProgress[this.currentCharIndex].score;
                         } else {
@@ -678,7 +679,7 @@ class ChineseCharacterApp {
 
                     // Show toast with score if using score-based algorithm
                     let toastMessage = difficultyNames[difficulty];
-                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.userProgress[this.currentCharIndex]) {
+                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.userProgress[this.currentCharIndex]) {
                         const score = this.userProgress[this.currentCharIndex].score;
                         if (score !== undefined && oldScore !== undefined) {
                             const displayScore = -score; // Flip sign for display (negative is good)
@@ -714,6 +715,7 @@ class ChineseCharacterApp {
         this.currentChar = result.char;
         this.currentCharIndex = result.index;
         this.currentResult = result;  // Store the full result
+        this.algorithmState.lastShownIndex = result.index;
 
         // Detect if character field contains 1 or 2 characters
         this.charCount = this.currentChar.character.length;
@@ -868,7 +870,7 @@ class ChineseCharacterApp {
 
             // Initialize score for FocusedSetsAlgorithm and KnownSetAlgorithm
             let initialScore = 0;
-            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.config) {
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.algorithm.config) {
                 initialScore = this.algorithm.config.initialScore;
             }
 
@@ -900,7 +902,7 @@ class ChineseCharacterApp {
             };
 
             // Update score for FocusedSetsAlgorithm and KnownSetAlgorithm
-            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.updateScore) {
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.algorithm.updateScore) {
                 this.userProgress[index].score = this.algorithm.updateScore(initialScore, difficulty);
 
                 if (this.userProgress[index].inSet) {
@@ -972,7 +974,7 @@ class ChineseCharacterApp {
             }
 
             // Update score for FocusedSetsAlgorithm and KnownSetAlgorithm
-            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && this.algorithm.updateScore) {
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.algorithm.updateScore) {
                 const currentScore = progress.score !== undefined ? progress.score : this.algorithm.config.initialScore;
                 const oldScore = currentScore;
                 progress.score = this.algorithm.updateScore(currentScore, difficulty);
@@ -1315,8 +1317,8 @@ class ChineseCharacterApp {
         }
 
         // Get set info for FocusedSetsAlgorithm and KnownSetAlgorithm
-        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') {
-            const setCards = this.algorithm.getActiveSet ? this.algorithm.getActiveSet(this.userProgress) : this.algorithm.getKnownSet(this.userProgress);
+        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') {
+            const setCards = this.algorithm.getActiveSet ? this.algorithm.getActiveSet(this.userProgress) : (this.algorithm.getWorkingSet ? this.algorithm.getWorkingSet(this.userProgress) : this.algorithm.getKnownSet(this.userProgress));
 
             bucketInfo = `
                 <div class="debug-info-row">
@@ -1365,7 +1367,7 @@ class ChineseCharacterApp {
 
             // Check status for FocusedSetsAlgorithm and KnownSetAlgorithm
             let scoreInfo = '';
-            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') && progress) {
+            if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && progress) {
                 const score = progress.score !== undefined ? progress.score : 0;
                 const displayScore = -score; // Flip sign for display
                 const inSet = progress.inSet ? 'Yes' : 'No';
@@ -1430,8 +1432,8 @@ class ChineseCharacterApp {
         let html = '';
 
         // Show set contents if using FocusedSetsAlgorithm or KnownSetAlgorithm
-        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') {
-            const setCards = this.algorithm.getActiveSet ? this.algorithm.getActiveSet(this.userProgress) : this.algorithm.getKnownSet(this.userProgress);
+        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') {
+            const setCards = this.algorithm.getActiveSet ? this.algorithm.getActiveSet(this.userProgress) : (this.algorithm.getWorkingSet ? this.algorithm.getWorkingSet(this.userProgress) : this.algorithm.getKnownSet(this.userProgress));
 
             html += '<h4 style="margin-bottom: 10px; color: #667eea;">Active Set Cards:</h4>';
 
@@ -1439,16 +1441,22 @@ class ChineseCharacterApp {
                 html += '<div style="padding: 10px; color: #999; font-style: italic;">Set is empty</div>';
             } else {
                 // Sort by score (highest first - needs most practice)
-                setCards.sort((a, b) => b.score - a.score);
+                // Normalize: getCardScore returns strength (0-1) for Rolling Window, raw score for others
+                const isRolling = this.algorithm.name === 'Rolling Window';
+                setCards.forEach(item => { item.score = item.score !== undefined ? item.score : (item.strength !== undefined ? item.strength : 0); });
+                setCards.sort((a, b) => isRolling ? a.score - b.score : b.score - a.score);
 
                 html += setCards.map((item, idx) => {
                     const char = this.characters[item.index];
                     const progress = item.progress;
 
                     const score = item.score;
-                    const displayScore = -score; // Flip sign for display
-                    const scoreColor = score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981';
-                    const scoreBadge = `<span style="background: ${scoreColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">Score: ${displayScore}</span>`;
+                    const displayScore = isRolling ? score.toFixed(1) : -score;
+                    const scoreColor = isRolling
+                        ? (score < 0.3 ? '#ef4444' : score < 0.6 ? '#f59e0b' : '#10b981')
+                        : (score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981');
+                    const scoreLabel = isRolling ? 'Strength' : 'Score';
+                    const scoreBadge = `<span style="background: ${scoreColor}; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px;">${scoreLabel}: ${displayScore}</span>`;
 
                     return `
                         <div class="debug-upcoming-card" style="background: rgba(102, 126, 234, 0.05); border-left: 3px solid #667eea;">
@@ -1480,14 +1488,18 @@ class ChineseCharacterApp {
                 });
             }
 
-            // Sort by score (highest first)
-            allCards.sort((a, b) => b.score - a.score);
+            // Sort: Rolling Window weakest first, others highest score first
+            const isRollingAll = this.algorithm.name === 'Rolling Window';
+            allCards.sort((a, b) => isRollingAll ? a.score - b.score : b.score - a.score);
 
             html += '<div style="max-height: 400px; overflow-y: auto;">';
             html += allCards.map((item, idx) => {
                 const score = item.score;
-                const displayScore = -score; // Flip sign for display
-                const scoreColor = score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981';
+                const displayScore = isRollingAll ? score.toFixed(1) : -score;
+                const scoreColor = isRollingAll
+                    ? (score < 0.3 ? '#ef4444' : score < 0.6 ? '#f59e0b' : '#10b981')
+                    : (score > 3 ? '#ef4444' : score > 0 ? '#f59e0b' : '#10b981');
+                const scoreLabel = isRollingAll ? 'Strength' : 'Score';
 
                 let badges = '';
                 if (item.inSet) {
@@ -1503,7 +1515,7 @@ class ChineseCharacterApp {
                         <span class="debug-char-small">${item.char.character}</span>
                         <span class="debug-pinyin" style="font-size: 12px;">${item.char.pinyin}</span>
                         <span class="debug-stats" style="font-size: 11px;">
-                            <span style="background: ${scoreColor}; color: white; padding: 2px 6px; border-radius: 4px;">Score: ${displayScore}</span>
+                            <span style="background: ${scoreColor}; color: white; padding: 2px 6px; border-radius: 4px;">${scoreLabel}: ${displayScore}</span>
                             ${item.progress ? `${item.progress.reviewCount} reviews` : '0 reviews'}
                             ${badges}
                         </span>

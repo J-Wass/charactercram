@@ -1096,6 +1096,168 @@ class KnownSetAlgorithm extends BaseAlgorithm {
     }
 }
 
+class RollingWindowAlgorithm extends BaseAlgorithm {
+    constructor() {
+        super();
+        this.name = 'Rolling Window';
+
+        this.config = {
+            setSize: 5,
+            maxSetSize: 100,
+            addCardThreshold: 0.8,
+            windowSize: 5,
+            weights: [1, 1.5, 2, 2.5, 3],
+            weakestTierRange: 0.2,
+            initialScore: 0
+        };
+    }
+
+    /**
+     * Compatibility with debug modal — returns strength as "score"
+     */
+    getCardScore(progress) {
+        return this.getCardStrength(progress);
+    }
+
+    /**
+     * Calculate card strength from last N scores using weighted average.
+     * Returns 0-1 (0 = weakest, 1 = mastered).
+     * Cards with no history get 0.
+     */
+    getCardStrength(progress) {
+        if (!progress || !progress.history || progress.history.length === 0) {
+            return 0;
+        }
+
+        const history = progress.history;
+        const recent = history.slice(-this.config.windowSize);
+        // Use the last N weights matching the number of scores we have
+        const weights = this.config.weights.slice(-recent.length);
+        const totalWeight = weights.reduce((sum, w) => sum + w, 0);
+
+        let weightedSum = 0;
+        for (let i = 0; i < recent.length; i++) {
+            weightedSum += recent[i] * weights[i];
+        }
+
+        const weightedAvg = weightedSum / totalWeight;
+        // Normalize 1-5 → 0-1
+        return (weightedAvg - 1) / 4;
+    }
+
+    /**
+     * Get cards currently in the working set
+     */
+    getWorkingSet(userProgress) {
+        const setCards = [];
+        for (const [index, progress] of Object.entries(userProgress)) {
+            if (progress && progress.inSet === true) {
+                setCards.push({
+                    index: parseInt(index),
+                    strength: this.getCardStrength(progress),
+                    progress
+                });
+            }
+        }
+        return setCards;
+    }
+
+    /**
+     * Average strength across all working set cards
+     */
+    getAverageStrength(setCards) {
+        if (setCards.length === 0) return 0;
+        const total = setCards.reduce((sum, c) => sum + c.strength, 0);
+        return total / setCards.length;
+    }
+
+    /**
+     * Add a new card when the set is strong enough
+     */
+    shouldAddNewCard(setCards) {
+        if (setCards.length < this.config.setSize) return true;
+        if (setCards.length >= this.config.maxSetSize) return false;
+        return this.getAverageStrength(setCards) >= this.config.addCardThreshold;
+    }
+
+    /**
+     * Find the next card to add following frequency rank order
+     */
+    findNextCardByFrequency(characters, userProgress) {
+        for (let i = 0; i < characters.length; i++) {
+            const progress = userProgress[i];
+            if (progress && progress.inSet === true) continue;
+            return { char: characters[i], index: i, isNew: !progress };
+        }
+        return null;
+    }
+
+    /**
+     * Pick randomly from the weakest tier of cards, excluding lastShownIndex
+     */
+    selectWeakestCard(setCards, lastShownIndex) {
+        // Filter out the last shown card
+        let candidates = setCards.length > 1
+            ? setCards.filter(c => c.index !== lastShownIndex)
+            : setCards;
+
+        if (candidates.length === 0) candidates = setCards;
+
+        // Find the minimum strength
+        const minStrength = Math.min(...candidates.map(c => c.strength));
+        const threshold = minStrength + this.config.weakestTierRange;
+
+        // Collect all cards within the weak tier
+        const weakTier = candidates.filter(c => c.strength <= threshold);
+
+        // Random pick from weak tier
+        return weakTier[Math.floor(Math.random() * weakTier.length)];
+    }
+
+    getNextCard(characters, userProgress, state) {
+        const setCards = this.getWorkingSet(userProgress);
+        const lastShown = state ? state.lastShownIndex : null;
+
+        // Check if we should add a new card
+        if (this.shouldAddNewCard(setCards)) {
+            const nextCard = this.findNextCardByFrequency(characters, userProgress);
+            if (nextCard) {
+                return {
+                    char: nextCard.char,
+                    index: nextCard.index,
+                    addToSet: true,
+                    isNew: nextCard.isNew
+                };
+            }
+        }
+
+        // Select from existing set — weakest cards preferred
+        if (setCards.length > 0) {
+            const selected = this.selectWeakestCard(setCards, lastShown);
+            return {
+                char: characters[selected.index],
+                index: selected.index
+            };
+        }
+
+        // Fallback: add first card
+        return {
+            char: characters[0],
+            index: 0,
+            addToSet: true,
+            isNew: true
+        };
+    }
+
+    // Score not used — strength is computed from history directly
+    updateScore(currentScore, difficulty) {
+        return currentScore;
+    }
+
+    calculateInitialInterval(difficulty) { return 1000; }
+    calculateNextInterval(difficulty, currentInterval, successRate) { return 1000; }
+}
+
 // Export the algorithms
 const ALGORITHMS = {
     improved: ImprovedSSRAlgorithm,
@@ -1104,11 +1266,12 @@ const ALGORITHMS = {
     mastery: MasteryBasedAlgorithm,
     bucket: BucketAlgorithm,
     score: FocusedSetsAlgorithm,
-    knownSet: KnownSetAlgorithm
+    knownSet: KnownSetAlgorithm,
+    rollingWindow: RollingWindowAlgorithm
 };
 
 // Factory function to create algorithm instances
-function createAlgorithm(type = 'knownSet') {
-    const AlgorithmClass = ALGORITHMS[type] || KnownSetAlgorithm;
+function createAlgorithm(type = 'rollingWindow') {
+    const AlgorithmClass = ALGORITHMS[type] || RollingWindowAlgorithm;
     return new AlgorithmClass();
 }
