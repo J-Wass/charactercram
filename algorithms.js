@@ -1108,6 +1108,9 @@ class RollingWindowAlgorithm extends BaseAlgorithm {
             windowSize: 5,
             weights: [1, 1.5, 2, 2.5, 3],
             weakestTierRange: 0.2,
+            minReviewsToProve: 3,   // Reviews needed before a card's strength is fully trusted
+            refreshChance: 0.15,    // Chance a draw refreshes a mastered card instead of drilling
+            masteredThreshold: 0.9, // Effective strength at/above this counts as "mastered"
             initialScore: 0
         };
     }
@@ -1146,6 +1149,24 @@ class RollingWindowAlgorithm extends BaseAlgorithm {
     }
 
     /**
+     * Confidence in a card's strength based on how many times it's been reviewed.
+     * Ramps 0 → 1 over the first `minReviewsToProve` reviews.
+     */
+    getConfidence(progress) {
+        const reviews = progress && progress.history ? progress.history.length : 0;
+        return Math.min(reviews / this.config.minReviewsToProve, 1);
+    }
+
+    /**
+     * Strength used for scheduling decisions. A high rating on a barely-reviewed
+     * card is discounted toward 0 so the card keeps resurfacing until it's proven.
+     * The raw getCardStrength is still used for display.
+     */
+    getEffectiveStrength(progress) {
+        return this.getCardStrength(progress) * this.getConfidence(progress);
+    }
+
+    /**
      * Get cards currently in the working set
      */
     getWorkingSet(userProgress) {
@@ -1154,7 +1175,7 @@ class RollingWindowAlgorithm extends BaseAlgorithm {
             if (progress && progress.inSet === true) {
                 setCards.push({
                     index: parseInt(index),
-                    strength: this.getCardStrength(progress),
+                    strength: this.getEffectiveStrength(progress),
                     progress
                 });
             }
@@ -1214,9 +1235,38 @@ class RollingWindowAlgorithm extends BaseAlgorithm {
         return weakTier[Math.floor(Math.random() * weakTier.length)];
     }
 
+    /**
+     * Pick the least-recently-shown mastered card for an occasional refresh.
+     * Returns null if no mastered card is available (e.g. early learning).
+     */
+    selectRefreshCard(setCards, lastShownIndex) {
+        const mastered = setCards.filter(c =>
+            c.strength >= this.config.masteredThreshold && c.index !== lastShownIndex
+        );
+
+        if (mastered.length === 0) return null;
+
+        // Oldest lastSeen first (least recently shown)
+        mastered.sort((a, b) => (a.progress.lastSeen || 0) - (b.progress.lastSeen || 0));
+        return mastered[0];
+    }
+
     getNextCard(characters, userProgress, state) {
         const setCards = this.getWorkingSet(userProgress);
         const lastShown = state ? state.lastShownIndex : null;
+
+        // Every now and then, refresh a least-recently-shown mastered card.
+        // A poor rating drops its strength below masteredThreshold automatically,
+        // re-entering it into normal weakest-tier practice.
+        if (Math.random() < this.config.refreshChance) {
+            const refresh = this.selectRefreshCard(setCards, lastShown);
+            if (refresh) {
+                return {
+                    char: characters[refresh.index],
+                    index: refresh.index
+                };
+            }
+        }
 
         // Check if we should add a new card
         if (this.shouldAddNewCard(setCards)) {

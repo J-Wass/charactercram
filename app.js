@@ -597,29 +597,18 @@ class ChineseCharacterApp {
                     5: '#10b981'  // Very Easy - green
                 };
 
-                // Capture old score before recording
-                let oldScore;
-                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window')) {
-                    if (this.userProgress[this.currentCharIndex]) {
-                        oldScore = this.userProgress[this.currentCharIndex].score;
-                    } else {
-                        // For new cards, use the initial score
-                        oldScore = this.algorithm.config.initialScore;
-                    }
-                }
+                // Capture mastery metric before recording (for score/strength-based algorithms)
+                const oldMetric = this.getDisplayMetric(this.userProgress[this.currentCharIndex]);
 
                 this.recordDifficulty(difficulty);
 
-                // Show toast with score if using score-based algorithm
+                // Append the updated metric to the toast if the algorithm exposes one
                 let toastMessage = difficultyText;
-                if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.userProgress[this.currentCharIndex]) {
-                    const score = this.userProgress[this.currentCharIndex].score;
-                    if (score !== undefined && oldScore !== undefined) {
-                        const displayScore = -score; // Flip sign for display (negative is good)
-                        const scoreDelta = -(score - oldScore);
-                        const deltaSign = scoreDelta > 0 ? '+' : '';
-                        toastMessage += ` • Score: ${displayScore} (${deltaSign}${scoreDelta})`;
-                    }
+                if (oldMetric !== null) {
+                    const newMetric = this.getDisplayMetric(this.userProgress[this.currentCharIndex]);
+                    const delta = newMetric - oldMetric;
+                    const deltaSign = delta > 0 ? '+' : '';
+                    toastMessage += ` • ${this.getMetricLabel()}: ${newMetric} (${deltaSign}${delta})`;
                 }
                 this.showToast(toastMessage, difficultyColors[difficulty]);
 
@@ -664,29 +653,18 @@ class ChineseCharacterApp {
                         5: '#10b981'  // Very Easy - green
                     };
 
-                    // Capture old score before recording
-                    let oldScore;
-                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window')) {
-                        if (this.userProgress[this.currentCharIndex]) {
-                            oldScore = this.userProgress[this.currentCharIndex].score;
-                        } else {
-                            // For new cards, use the initial score
-                            oldScore = this.algorithm.config.initialScore;
-                        }
-                    }
+                    // Capture mastery metric before recording (for score/strength-based algorithms)
+                    const oldMetric = this.getDisplayMetric(this.userProgress[this.currentCharIndex]);
 
                     this.recordDifficulty(difficulty);
 
-                    // Show toast with score if using score-based algorithm
+                    // Append the updated metric to the toast if the algorithm exposes one
                     let toastMessage = difficultyNames[difficulty];
-                    if ((this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set' || this.algorithm.name === 'Rolling Window') && this.userProgress[this.currentCharIndex]) {
-                        const score = this.userProgress[this.currentCharIndex].score;
-                        if (score !== undefined && oldScore !== undefined) {
-                            const displayScore = -score; // Flip sign for display (negative is good)
-                            const scoreDelta = -(score - oldScore);
-                            const deltaSign = scoreDelta > 0 ? '+' : '';
-                            toastMessage += ` • Score: ${displayScore} (${deltaSign}${scoreDelta})`;
-                        }
+                    if (oldMetric !== null) {
+                        const newMetric = this.getDisplayMetric(this.userProgress[this.currentCharIndex]);
+                        const delta = newMetric - oldMetric;
+                        const deltaSign = delta > 0 ? '+' : '';
+                        toastMessage += ` • ${this.getMetricLabel()}: ${newMetric} (${deltaSign}${delta})`;
                     }
                     this.showToast(toastMessage, difficultyColors[difficulty]);
 
@@ -836,6 +814,26 @@ class ChineseCharacterApp {
             );
             this.smoothScrollTo(maxHeight);
         }, 100);
+    }
+
+    // Returns a display-friendly mastery metric for score/strength-based algorithms,
+    // or null if the current algorithm doesn't expose one. Higher is always better.
+    getDisplayMetric(progress) {
+        if (this.algorithm.name === 'Rolling Window') {
+            // Rolling Window has no cumulative score; strength (0-1) is the real metric.
+            return Math.round(this.algorithm.getCardStrength(progress) * 100);
+        }
+        if (this.algorithm.name === 'Focused Sets' || this.algorithm.name === 'Known Set') {
+            const score = progress && progress.score !== undefined
+                ? progress.score
+                : this.algorithm.config.initialScore;
+            return -score; // Flip sign so higher = better.
+        }
+        return null;
+    }
+
+    getMetricLabel() {
+        return this.algorithm.name === 'Rolling Window' ? 'Strength' : 'Score';
     }
 
     recordDifficulty(difficulty) {
