@@ -587,8 +587,11 @@ class ChineseCharacterApp {
         // Difficulty buttons
         document.querySelectorAll('.difficulty-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
-                const difficulty = parseInt(e.target.dataset.difficulty);
-                const difficultyText = e.target.textContent.replace(/\d+/, '').trim();
+                // Use currentTarget (the button) — e.target may be the inner
+                // <span class="hotkey-number">, which lacks data-difficulty and
+                // would yield NaN.
+                const difficulty = parseInt(e.currentTarget.dataset.difficulty);
+                const difficultyText = e.currentTarget.textContent.replace(/\d+/, '').trim();
                 const difficultyColors = {
                     1: '#ef4444', // Very Hard - red
                     2: '#f97316', // Hard - orange
@@ -838,6 +841,12 @@ class ChineseCharacterApp {
 
     recordDifficulty(difficulty) {
         if (!this.currentChar) return;
+        // Guard against a corrupt rating (e.g. NaN) being written into history,
+        // which would poison strength calculations downstream.
+        if (!Number.isFinite(difficulty)) {
+            console.warn('Ignoring invalid difficulty rating:', difficulty);
+            return;
+        }
 
         const now = Date.now();
         const index = this.currentCharIndex;
@@ -1208,7 +1217,59 @@ class ChineseCharacterApp {
 
     loadProgress() {
         const saved = localStorage.getItem('chineseCharProgress');
-        return saved ? JSON.parse(saved) : {};
+        const progress = saved ? JSON.parse(saved) : {};
+        const fixes = this.sanitizeProgress(progress);
+        if (fixes > 0) {
+            // Persist the cleaned data immediately so the junk is gone for good.
+            localStorage.setItem('chineseCharProgress', JSON.stringify(progress));
+            console.warn(`Sanitized ${fixes} corrupt rating(s) from saved progress.`);
+        }
+        return progress;
+    }
+
+    /**
+     * Repair progress records corrupted by an invalid (NaN/null) rating:
+     * strip the bad history entries and back out the side effects they caused
+     * (inflated reviewCount/successRate, NaN lastDifficulty). Returns the
+     * number of corrupt values fixed. Only touches affected cards.
+     */
+    sanitizeProgress(userProgress) {
+        let fixes = 0;
+        for (const key in userProgress) {
+            const p = userProgress[key];
+            if (!p || typeof p !== 'object') continue;
+
+            if (Array.isArray(p.history)) {
+                const cleaned = p.history.filter(v => Number.isFinite(v));
+                const removed = p.history.length - cleaned.length;
+                if (removed > 0) {
+                    p.history = cleaned;
+                    // Each bad rating had bumped reviewCount; back it out.
+                    if (Number.isFinite(p.reviewCount)) {
+                        p.reviewCount = Math.max(0, p.reviewCount - removed);
+                    }
+                    // Bad ratings never counted as correct, so successCount is
+                    // unchanged — just recompute the rate against the new count.
+                    if (Number.isFinite(p.successCount)) {
+                        p.successRate = p.reviewCount > 0
+                            ? p.successCount / p.reviewCount
+                            : 0;
+                    }
+                    fixes += removed;
+                }
+            }
+
+            // A NaN rating also corrupted lastDifficulty; restore it from the
+            // most recent valid rating (or clear it).
+            if (p.lastDifficulty !== undefined && p.lastDifficulty !== null
+                && !Number.isFinite(p.lastDifficulty)) {
+                p.lastDifficulty = (Array.isArray(p.history) && p.history.length > 0)
+                    ? p.history[p.history.length - 1]
+                    : null;
+                fixes++;
+            }
+        }
+        return fixes;
     }
 
     // Data management methods
@@ -1237,6 +1298,7 @@ class ChineseCharacterApp {
                 reader.onload = (event) => {
                     try {
                         const imported = JSON.parse(event.target.result);
+                        this.sanitizeProgress(imported);
                         this.userProgress = imported;
                         this.saveProgress();
                         this.showToast('Data imported successfully!');

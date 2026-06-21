@@ -1132,7 +1132,13 @@ class RollingWindowAlgorithm extends BaseAlgorithm {
             return 0;
         }
 
-        const history = progress.history;
+        // Drop any corrupt (non-numeric / NaN) ratings that may have crept into
+        // history — a single NaN would otherwise poison the weighted average.
+        const history = progress.history.filter(v => Number.isFinite(v));
+        if (history.length === 0) {
+            return 0;
+        }
+
         const recent = history.slice(-this.config.windowSize);
         // Use the last N weights matching the number of scores we have
         const weights = this.config.weights.slice(-recent.length);
@@ -1224,12 +1230,16 @@ class RollingWindowAlgorithm extends BaseAlgorithm {
 
         if (candidates.length === 0) candidates = setCards;
 
+        // Treat any non-finite strength as weakest (0) so a corrupt card
+        // resurfaces for review instead of breaking selection.
+        const strengthOf = c => Number.isFinite(c.strength) ? c.strength : 0;
+
         // Find the minimum strength
-        const minStrength = Math.min(...candidates.map(c => c.strength));
+        const minStrength = Math.min(...candidates.map(strengthOf));
         const threshold = minStrength + this.config.weakestTierRange;
 
         // Collect all cards within the weak tier
-        const weakTier = candidates.filter(c => c.strength <= threshold);
+        const weakTier = candidates.filter(c => strengthOf(c) <= threshold);
 
         // Random pick from weak tier
         return weakTier[Math.floor(Math.random() * weakTier.length)];
